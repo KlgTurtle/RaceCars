@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Making your first Phaser 3 Game - Part 1</title>
+    <script src="//cdn.jsdelivr.net/npm/phaser@3.11.0/dist/phaser.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <script type="text/javascript">
+        class MapBitMap {
+            constructor(WorldWidth, WorldHeight, TileWidth, TileHeight) {
+                this.WorldWidth = WorldWidth;
+                this.WorldHeight = WorldHeight;
+                this.TileWidth = TileWidth;
+                this.TileHeight = TileHeight;
+
+                this.BitMap = [];
+                this.nWidthSlots = Math.floor(this.WorldWidth / this.TileWidth);
+                this.nHeightSlots = Math.floor(this.WorldHeight / this.TileHeight);
+                for (let i = 0; i < this.nHeightSlots; ++i) {
+                    this.BitMap[i] = [];
+                    for (let j = 0; j < this.nWidthSlots; ++j) {
+                        this.BitMap[i][j] = false;
+                    }
+                }
+            }
+
+            IsSlotOccupied(x, y) {
+                let HeightIndex = Math.floor(y / this.TileHeight);
+                let WidthIndex = Math.floor(x / this.TileWidth);
+                if (HeightIndex >= this.nHeightSlots || WidthIndex >= this.nWidthSlots) debugger;
+
+                return this.BitMap[HeightIndex][WidthIndex];
+            }
+
+            OccupySlot(x, y) {
+                let HeightIndex = Math.floor(y / this.TileHeight);
+                let WidthIndex = Math.floor(x / this.TileWidth);
+                if (HeightIndex >= this.nHeightSlots || WidthIndex >= this.nWidthSlots) debugger;
+
+                this.BitMap[HeightIndex][WidthIndex] = true;
+            }
+
+            FreeSlot(x, y) {
+                let HeightIndex = Math.floor(y / this.TileHeight);
+                let WidthIndex = Math.floor(x / this.TileWidth);
+                if (HeightIndex >= this.nHeightSlots || WidthIndex >= this.nWidthSlots) debugger;
+
+                this.BitMap[HeightIndex][WidthIndex] = false;
+            }
+        }
+
+
+        
+
+        class RaceCar {
+            constructor(SceneObj, x, y, TileSize, TileScale, ImageName) {
+                this.Car = SceneObj.matter.add.image(x + RaceCar.StartLineDeltaX + (TileSize / 2) * TileScale,
+                    y + RaceCar.StartLineDeltaY + (TileSize / 2) * TileScale, ImageName);
+                this.Car.setFrictionAir(0.05);
+                this.Car.setMass(5);
+                this.Car.setScale(0.85);
+
+                this.LapsCompleted = 0;
+                this.Place = 0;
+                this.CompletedRace = false;
+                if (RaceCar.StartLineDeltaX == RaceCar.StartLineDeltaY) {
+                    RaceCar.StartLineDeltaY -= (TileSize / 2) * TileScale;
+                }
+                else {
+                    RaceCar.StartLineDeltaX -= (TileSize / 2) * TileScale;
+                }
+            }
+
+            update(SceneObj) 
+            {
+                var origX = this.Car.x;
+                var origY = this.Car.y;
+                // text.setPosition(100 - this.cameras.main.x, 100 - this.cameras.main.y);
+                // text.setText([
+                //     'position.x: ' + this.Car.body.position.x,
+                //     'position.y: ' + this.Car.body.position.y,
+                //     'velocity.x: ' + this.Car.body.velocity.x,
+                //     'velocity.y: ' + this.Car.body.velocity.y,
+                //     'camrea.x:' + this.cameras.main.x,
+                //     'camera.y:' + this.cameras.main.y
+                // ]);
+
+                var point1 = this.Car.getTopLeft();
+                var point2 = this.Car.getBottomLeft();
+                var point3 = this.Car.getTopRight();
+                var point4 = this.Car.getBottomRight();
+
+                // graphics1.clear();
+                // graphics2.clear();
+                // graphics1.fillRectShape(tracker1);
+                // graphics2.fillRectShape(tracker2);
+                // graphics3.clear();
+                // graphics4.clear();
+                // graphics3.fillRectShape(tracker3);
+                // graphics4.fillRectShape(tracker4);
+                // tracker1.setPosition(point1.x, point1.y);
+                // tracker2.setPosition(point2.x, point2.y);
+                // tracker3.setPosition(point3.x, point3.y);
+                // tracker4.setPosition(point4.x, point4.y);
+
+                var speed = 0.25;
+                var angle = { x: speed * Math.cos(this.Car.body.angle), y: speed * Math.sin(this.Car.body.angle) };
+                // var angle = { x: 0, y: 0 };
+
+                var factor = 0.00001;
+                if (cursors.left.isDown) {
+                    this.Car.applyForceFrom({ x: point3.x, y: point3.y }, {
+                        x: -factor * (point4.x - point3.x),
+                        y: -factor * (point4.y - point3.y)
+                    });
+                    this.Car.applyForceFrom({ x: point1.x, y: point1.y }, {
+                        x: factor * (point2.x - point1.x),
+                        y: factor * (point2.y - point1.y)
+                    });
+
+                    //  Phaser.Physics.Matter.Matter.Body.setAngularVelocity(this.Car.body, -0.05);
+                    // car.angle -= 3;
+                }
+                else if (cursors.right.isDown) {
+                    this.Car.applyForceFrom({ x: point3.x, y: point3.y }, {
+                        x: factor * (point4.x - point3.x),
+                        y: factor * (point4.y - point3.y)
+                    });
+                    this.Car.applyForceFrom({ x: point1.x, y: point1.y }, {
+                        x: -factor * (point2.x - point1.x),
+                        y: -factor * (point2.y - point1.y)
+                    });
+
+                    //  car.applyForceFrom();
+                    //  Phaser.Physics.Matter.Matter.Body.setAngularVelocity(this.Car.body, 0.05);
+                    //   car.angle += 3;
+                }
+
+                if (cursors.up.isDown) {
+                    //car.thrust(0.025);
+                    this.Car.applyForceFrom({ x: point1.x, y: point1.y }, {
+                        x: 0.00005 * (point3.x - point1.x),
+                        y: 0.00005 * (point3.y - point1.y)
+                    });
+                    this.Car.applyForceFrom({ x: point2.x, y: point2.y }, {
+                        x: 0.00005 * (point4.x - point2.x),
+                        y: 0.00005 * (point4.y - point2.y)
+                    });
+                }
+                else if (cursors.down.isDown) {
+                    this.Car.applyForceFrom({ x: point1.x, y: point1.y }, {
+                        x: -0.00005 * (point3.x - point1.x),
+                        y: -0.00005 * (point3.y - point1.y)
+                    });
+                    this.Car.applyForceFrom({ x: point2.x, y: point2.y }, {
+                        x: -0.00005 * (point4.x - point2.x),
+                        y: -0.00005 * (point4.y - point2.y)
+                    });
+                }
+
+
+                SceneObj.cameras.main.x = ((game.config.width / 2 - this.Car.x < 0) && (this.Car.x - (worldWidth - game.config.width / 2) < 0)) ? game.config.width / 2 - this.Car.x : SceneObj.cameras.main.x;
+                SceneObj.cameras.main.y = ((game.config.height / 2 - this.Car.y < 0) && (this.Car.y - (worldHeight - game.config.height / 2) < 0)) ? game.config.height / 2 - this.Car.y : SceneObj.cameras.main.y;
+            }
+
+
+
+
+        }
+
+        RaceCar.StartLineDeltaX = 0;
+        RaceCar.StartLineDeltaY = 0;
+       
+
+
+
+        worldWidth = 5500;
+        worldHeight = 5500;
+
+        var config = {
+            type: Phaser.AUTO,
+            width: 1200,
+            height: 1000,
+            physics: {
+                default: 'matter',
+                matter: {
+                    debug: false,
+                    gravity: {
+                        x: 0,
+                        y: 0
+                    }
+                }
+            },
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
+            },
+            pixelArt: true
+        };
+
+        var scaleSize = 2.2;
+        var stepSize = 128 * scaleSize;
+        var mapBitMap = new MapBitMap(worldWidth, worldHeight, stepSize, stepSize);
+        var car1, car2;
+        var tracker1;
+        var tracker2;
+        var cursors;
+        var TileScale = 4;
+
+        var game = new Phaser.Game(config);
+
+
+
+
+        function createCars(gameObj, x, y, TileSize) {
+            car1 = new RaceCar(gameObj, x, y, TileSize, TileScale, 'car');
+          //  car2 = new RaceCar(gameObj, x, y, TileSize, TileScale, 'car');
+        }
+
+        function isSlotOccupied(arr, x, y, step) {
+            return (arr[Math.floor(x / step)][Math.floor(y / step)]);
+        }
+
+        function markSlot(arr, x, y, step) {
+            arr[Math.floor(x / step)][Math.floor(y / step)] = 1;
+        }
+
+
+        function setCarTracker(sceneObj) {
+            tracker1 = new Phaser.Geom.Rectangle(0, 0, 4, 4);
+            tracker2 = new Phaser.Geom.Rectangle(0, 0, 4, 4);
+            tracker3 = new Phaser.Geom.Rectangle(0, 0, 4, 4);
+            tracker4 = new Phaser.Geom.Rectangle(0, 0, 4, 4);
+            graphics1 = sceneObj.add.graphics({ fillStyle: { color: 0x0000ff } });
+            graphics2 = sceneObj.add.graphics({ fillStyle: { color: 0x00ff00 } });
+            graphics3 = sceneObj.add.graphics({ fillStyle: { color: 0xff0000 } });
+            graphics4 = sceneObj.add.graphics({ fillStyle: { color: 0xffff00 } });
+        }
+
+        function preload() {
+            this.load.image('soil', 'assets/textures/soil.png');
+            this.load.image('car', 'assets/sprites/car-yellow.png');
+            this.load.image('road', 'assets/textures/road2.png');
+
+            this.load.image('roadVertical', 'assets/Tiles/Asphalt road/road_asphalt01.png');
+            this.load.image('roadHorizontal', 'assets/Tiles/Asphalt road/road_asphalt02.png');
+
+            this.load.image('turnUpRight', 'assets/Tiles/Asphalt road/road_asphalt03.png');
+            this.load.image('turnUpLeft', 'assets/Tiles/Asphalt road/road_asphalt05.png');
+            this.load.image('turnDownRight', 'assets/Tiles/Asphalt road/road_asphalt39.png');
+            this.load.image('turnDownLeft', 'assets/Tiles/Asphalt road/road_asphalt41.png');
+
+            // this.load.image("trackTiles", 'assets/Spritesheets/spritesheet2.png');
+            this.load.spritesheet('trackTiles', 'assets/Spritesheets/new/AssetPack/road.png', { frameWidth: 88, frameHeight: 88 });
+
+
+
+            this.load.tilemapTiledJSON("map", 'assets/Spritesheets/new/level1.json');
+
+
+        }
+        function create() {
+          //  this.add.tileSprite(worldWidth / 2, worldHeight / 2, worldWidth, worldHeight, 'soil');
+            this.cameras.main.roundPixels = true;
+
+            const map = this.make.tilemap({ key: "map" });
+
+            const tileset = map.addTilesetImage("Road", "trackTiles", 88, 88, 1, 2);
+        
+
+            var trackLayer = map.createStaticLayer(0, tileset, 0, 0);
+            trackLayer.setScale(TileScale);
+          
+            var tile = trackLayer.findTile(t => t.index == 7);
+
+            this.cameras.main.setSize(worldWidth, worldHeight);
+
+            createCars(this, tile.pixelX, tile.pixelY, tile.height);
+            this.matter.world.setBounds(0, 0, worldWidth, worldHeight);
+            setCarTracker(this);
+            cursors = this.input.keyboard.createCursorKeys();
+            text = this.add.text(100, 100, '', { font: '16px Courier', fill: '#00ff00' });
+        }
+
+        function update() 
+        {
+            car1.update(this);
+           // car2.update(this);
+
+
+        }
+
+
+    </script>
+
+</body>
+
+</html>
