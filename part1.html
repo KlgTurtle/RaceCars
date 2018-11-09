@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <title>Making your first Phaser 3 Game - Part 1</title>
-    <script src="//cdn.jsdelivr.net/npm/phaser@3.11.0/dist/phaser.js"></script>
+    <script src="Phaser/dist/phaser.js"></script>
     <style type="text/css">
         body {
             margin: 0;
@@ -59,64 +59,263 @@
         }
 
 
-        
+
+        class RaceTrack {
+            constructor(TrackTileLayer) {
+                this.TrackTileLayer = TrackTileLayer;
+
+                var StartLineTile = this.TrackTileLayer.findTile(t => t.properties.startLine == true);
+                // StartLineTile.tint = 0xaabbcc;
+
+                var CurrDirX, CurrDirY;
+                if (StartLineTile.properties.direction == 'x') {
+                    CurrDirX = 1;
+                    CurrDirY = 0;
+                }
+                else {
+                    CurrDirX = 0;
+                    CurrDirY = -1;
+                }
+
+                StartLineTile.properties.TileId = 0;
+
+                var PrevTile = StartLineTile;
+                var CurrTile = this.TrackTileLayer.getTileAt(StartLineTile.x + CurrDirX, StartLineTile.y + CurrDirY);
+                var bLooped = false;
+
+                do {
+                    if (CurrTile.properties.TileId == -1) {
+                        CurrTile.properties.TileId = PrevTile.properties.TileId + 1;
+                    }
+                    else {
+                        bLooped = true;
+                    }
+                    PrevTile.properties.nextTileId = CurrTile.properties.TileId;
+
+                    PrevTile = CurrTile;
+
+                    if (PrevTile.properties.turn) {
+                        var temp = CurrDirX;
+                        CurrDirX = CurrDirY;
+                        CurrDirY = temp;
+                    }
+
+                    CurrTile = this.TrackTileLayer.getTileAt(PrevTile.x + CurrDirX, PrevTile.y + CurrDirY);
+                    if (CurrTile == null) {
+                        CurrDirX *= -1;
+                        CurrDirY *= -1;
+                        CurrTile = this.TrackTileLayer.getTileAt(PrevTile.x + CurrDirX, PrevTile.y + CurrDirY);
+                    }
+
+                } while (!bLooped)
+
+            }
+        }
 
         class RaceCar {
-            constructor(SceneObj, x, y, TileSize, TileScale, ImageName) {
+            constructor(SceneObj, x, y, TileSize, TileScale, ImageNameCar, ImageNameArrow) {
                 this.Car = SceneObj.matter.add.image(x + RaceCar.StartLineDeltaX + (TileSize / 2) * TileScale,
-                    y + RaceCar.StartLineDeltaY + (TileSize / 2) * TileScale, ImageName);
+                    y + RaceCar.StartLineDeltaY + (TileSize / 2) * TileScale, ImageNameCar);
+
                 this.Car.setFrictionAir(0.05);
                 this.Car.setMass(5);
-                this.Car.setScale(0.85);
+                this.Car.setScale(0.8);
 
+
+                // this.OffTrackArrow.setScrollFactor(0.99,0.99);
+                //   this.OffTrackArrow.setScale(0.25);
                 this.LapsCompleted = 0;
                 this.Place = 0;
                 this.CompletedRace = false;
+                this.TimeLeftTrack = 0;
+                this.LastValidTile = null;
+                this.LastValidX = this.Car.x;
+                this.LastValidY = this.Car.y;
+                this.OnTrack = true;
+                this.alphaFactor = 1;
+                this.OffTrackTimerId = 0;
+                this.graphics = SceneObj.add.graphics({ fillStyle: { color: 0x00ff00 }, lineStyle: { color: 0x00ff00 } });
+                this.offTrackPointer = new Phaser.Geom.Triangle;
+
                 if (RaceCar.StartLineDeltaX == RaceCar.StartLineDeltaY) {
                     RaceCar.StartLineDeltaY -= (TileSize / 2) * TileScale;
                 }
                 else {
                     RaceCar.StartLineDeltaX -= (TileSize / 2) * TileScale;
                 }
+
+                SceneObj.events.once('offTrack', this.handleOffTrack, this);
             }
 
-            update(SceneObj) 
-            {
+            ShowOffTrackArrow(RaceCarObj, SceneObj) {
+                // vector directed from the car to the last valid tile
+                var vDir = new Phaser.Math.Vector2(RaceCarObj.LastValidX - RaceCarObj.Car.x,
+                    RaceCarObj.LastValidY - RaceCarObj.Car.y);
+
+                vDir.normalize();
+
+                var vDirPerp = new Phaser.Math.Vector2(-vDir.y, vDir.x);
+                var trX = 0, trY = 0;
+                var trVec;
+                var vDirAngle = vDir.angle();
+
+                // TOP
+                if (vDirAngle >= 5 * Math.PI / 4 && vDirAngle <= 7 * Math.PI / 4) {
+                    trY = 0;
+                    var factor = (SceneObj.game.config.height / 2) / vDir.y;
+                    trX = SceneObj.game.config.width / 2 - vDir.x * factor;
+                }
+                // RIGHT
+                else if (vDirAngle >= 7 * Math.PI / 4 || vDirAngle <= Math.PI / 4) {
+                    trX = SceneObj.game.config.width;
+                    var factor = (SceneObj.game.config.width / 2) / vDir.x;
+                    trY = SceneObj.game.config.height / 2 + vDir.y * factor;
+                }
+                // BOTTOM
+                else if (vDirAngle >= Math.PI / 4 && vDirAngle <= 3 * Math.PI / 4) {
+                    trY = SceneObj.game.config.height;
+                    var factor = (SceneObj.game.config.height / 2) / vDir.y;
+                    trX = SceneObj.game.config.width / 2 + vDir.x * factor;
+                }
+                // LEFT (or as Sherlock Holmes said...)
+                else // if (vDirAngle >= 3*Math.PI/4 && vDirAngle <= 5*Math.PI/4)
+                {
+                    trX = 0;
+                    var factor = (SceneObj.game.config.width / 2) / vDir.x;
+                    trY = SceneObj.game.config.height / 2 - vDir.y * factor;
+                }
+
+                //  trX = Math.min(Math.max(trX, 0), SceneObj.game.config.width);
+                //  trY = Math.min(Math.max(trY, 0), SceneObj.game.config.height);
+
+
+
+                vDir.scale(40);
+                vDirPerp.scale(10);
+
+                SceneObj.events.emit('ShowOffTrackArrow', trX, trY, vDirAngle);
+            }
+
+            handleOffTrackInterval(RaceCarObj, SceneObj) {
+                if (!RaceCarObj.OnTrack && RaceCarObj.LastValidTile) {
+                    if ((RaceCarObj.alphaFactor > 0 && RaceCarObj.LastValidTile.alpha >= 1) ||
+                        (RaceCarObj.alphaFactor < 0 && RaceCarObj.LastValidTile.alpha <= 0.7)) {
+                        RaceCarObj.alphaFactor *= -1;
+                    }
+                    RaceCarObj.LastValidTile.setAlpha(RaceCarObj.LastValidTile.alpha + 0.05 * RaceCarObj.alphaFactor);
+
+                    if (!Phaser.Geom.Rectangle.Contains(SceneObj.cameras.main.worldView, RaceCarObj.LastValidX, RaceCarObj.LastValidY)) {
+                        RaceCarObj.ShowOffTrackArrow(RaceCarObj, SceneObj);
+                    }
+                    else {
+                        SceneObj.events.emit('HideOffTrackArrow');
+                    }
+                }
+                else {
+                    RaceCarObj.LastValidTile.clearAlpha();
+                    clearInterval(RaceCarObj.OffTrackTimerId);
+                    SceneObj.events.emit('HideOffTrackArrow');
+                    SceneObj.events.once('offTrack', RaceCarObj.handleOffTrack, RaceCarObj);
+                }
+            }
+            handleOffTrack(RaceCarObj, SceneObj) {
+                RaceCarObj.OffTrackTimerId = setInterval(RaceCarObj.handleOffTrackInterval, 50, RaceCarObj, SceneObj);
+            }
+
+            debug(SceneObj) {
+                text.setPosition(100 - SceneObj.cameras.main.x, 100 - SceneObj.cameras.main.y);
+                text.setText([
+                    'position.x: ' + this.Car.body.position.x,
+                    'position.y: ' + this.Car.body.position.y,
+                    'velocity.x: ' + this.Car.body.velocity.x,
+                    'velocity.y: ' + this.Car.body.velocity.y,
+                    'camrea.x:' + SceneObj.cameras.main.x,
+                    'camera.y:' + SceneObj.cameras.main.y
+
+                ]);
+
+            }
+
+            checkTileValidity(SceneObj, T) {
+                this.graphics.clear();
+
+                var factor = 0.00005;
+                if (T != null && ((this.LastValidTile == null) ||
+                    (this.LastValidTile.properties.TileId == T.properties.TileId) ||
+                    ((this.LastValidTile.properties.TileId != T.properties.TileId) &&
+                        this.LastValidTile.properties.nextTileId == T.properties.TileId))) {
+                    if (this.OnTrack) {
+                        this.LastValidTile = T;
+                        this.LastValidX = this.Car.x;
+                        this.LastValidY = this.Car.y;
+                    }
+                    else if (this.LastValidTile.properties.TileId == T.properties.TileId) {
+                        this.OnTrack = true;
+                    }
+
+                    return factor;
+                }
+
+
+
+                factor = (T == null) ? factor / 3 : factor;
+
+                if (this.LastValidTile != null) {
+                    // We're not on track, if we're far enough we'll trigger the "off track" event.
+                    if (T == null) {
+                        this.OnTrack = false;
+                        var FoundTiles = trackLayer.getTilesWithinShape(new Phaser.Geom.Circle(this.Car.x, this.Car.y, SceneObj.game.config.height / 6),
+                            { isNotEmpty: true });
+
+                        if (FoundTiles.length == 0) {
+                            SceneObj.events.emit('offTrack', this, SceneObj);
+                        }
+                    }
+                    // We're on track, make sure that we're on a valid tile though, otherwise trigger "off track" event.
+                    else {
+                        var N1ValidTile = trackLayer.findTile(t => t.properties.TileId == this.LastValidTile.properties.nextTileId);
+                        var N2ValidTile = trackLayer.findTile(t => t.properties.TileId == N1ValidTile.properties.nextTileId);
+                        var N3ValidTile = trackLayer.findTile(t => t.properties.TileId == N2ValidTile.properties.nextTileId);
+                        if (T.properties.TileId == N1ValidTile.properties.TileId ||
+                            T.properties.TileId == N2ValidTile.properties.TileId ||
+                            T.properties.TileId == N3ValidTile.properties.TileId) {
+                            this.LastValidTile.clearAlpha();
+                            this.LastValidTile = T;
+                            this.OnTrack = true;
+                        }
+                        else
+                        {
+                            this.OnTrack = false;
+                            SceneObj.events.emit('offTrack', this, SceneObj);
+                        }
+                    }
+                }
+
+                return factor;
+            }
+
+            update(SceneObj) {
+                this.debug(SceneObj);
                 var origX = this.Car.x;
                 var origY = this.Car.y;
-                // text.setPosition(100 - this.cameras.main.x, 100 - this.cameras.main.y);
-                // text.setText([
-                //     'position.x: ' + this.Car.body.position.x,
-                //     'position.y: ' + this.Car.body.position.y,
-                //     'velocity.x: ' + this.Car.body.velocity.x,
-                //     'velocity.y: ' + this.Car.body.velocity.y,
-                //     'camrea.x:' + this.cameras.main.x,
-                //     'camera.y:' + this.cameras.main.y
-                // ]);
+
+                var CurrTile = trackLayer.getTileAt(trackLayer.worldToTileX(origX), trackLayer.worldToTileY(origY));
+
 
                 var point1 = this.Car.getTopLeft();
                 var point2 = this.Car.getBottomLeft();
                 var point3 = this.Car.getTopRight();
                 var point4 = this.Car.getBottomRight();
 
-                // graphics1.clear();
-                // graphics2.clear();
-                // graphics1.fillRectShape(tracker1);
-                // graphics2.fillRectShape(tracker2);
-                // graphics3.clear();
-                // graphics4.clear();
-                // graphics3.fillRectShape(tracker3);
-                // graphics4.fillRectShape(tracker4);
-                // tracker1.setPosition(point1.x, point1.y);
-                // tracker2.setPosition(point2.x, point2.y);
-                // tracker3.setPosition(point3.x, point3.y);
-                // tracker4.setPosition(point4.x, point4.y);
 
                 var speed = 0.25;
+
                 var angle = { x: speed * Math.cos(this.Car.body.angle), y: speed * Math.sin(this.Car.body.angle) };
                 // var angle = { x: 0, y: 0 };
 
-                var factor = 0.00001;
+
+                var factor = this.checkTileValidity(SceneObj, CurrTile);
+
                 if (cursors.left.isDown) {
                     this.Car.applyForceFrom({ x: point3.x, y: point3.y }, {
                         x: -factor * (point4.x - point3.x),
@@ -148,28 +347,28 @@
                 if (cursors.up.isDown) {
                     //car.thrust(0.025);
                     this.Car.applyForceFrom({ x: point1.x, y: point1.y }, {
-                        x: 0.00005 * (point3.x - point1.x),
-                        y: 0.00005 * (point3.y - point1.y)
+                        x: factor * (point3.x - point1.x),
+                        y: factor * (point3.y - point1.y)
                     });
                     this.Car.applyForceFrom({ x: point2.x, y: point2.y }, {
-                        x: 0.00005 * (point4.x - point2.x),
-                        y: 0.00005 * (point4.y - point2.y)
+                        x: factor * (point4.x - point2.x),
+                        y: factor * (point4.y - point2.y)
                     });
                 }
                 else if (cursors.down.isDown) {
                     this.Car.applyForceFrom({ x: point1.x, y: point1.y }, {
-                        x: -0.00005 * (point3.x - point1.x),
-                        y: -0.00005 * (point3.y - point1.y)
+                        x: -factor * (point3.x - point1.x),
+                        y: -factor * (point3.y - point1.y)
                     });
                     this.Car.applyForceFrom({ x: point2.x, y: point2.y }, {
-                        x: -0.00005 * (point4.x - point2.x),
-                        y: -0.00005 * (point4.y - point2.y)
+                        x: -factor * (point4.x - point2.x),
+                        y: -factor * (point4.y - point2.y)
                     });
                 }
 
 
-                SceneObj.cameras.main.x = ((game.config.width / 2 - this.Car.x < 0) && (this.Car.x - (worldWidth - game.config.width / 2) < 0)) ? game.config.width / 2 - this.Car.x : SceneObj.cameras.main.x;
-                SceneObj.cameras.main.y = ((game.config.height / 2 - this.Car.y < 0) && (this.Car.y - (worldHeight - game.config.height / 2) < 0)) ? game.config.height / 2 - this.Car.y : SceneObj.cameras.main.y;
+                // SceneObj.cameras.main.x = ((game.config.width / 2 - this.Car.x < 0) && (this.Car.x - (worldWidth - game.config.width / 2) < 0)) ? game.config.width / 2 - this.Car.x : SceneObj.cameras.main.x;
+                //   SceneObj.cameras.main.y = ((game.config.height / 2 - this.Car.y < 0) && (this.Car.y - (worldHeight - game.config.height / 2) < 0)) ? game.config.height / 2 - this.Car.y : SceneObj.cameras.main.y;
             }
 
 
@@ -179,34 +378,14 @@
 
         RaceCar.StartLineDeltaX = 0;
         RaceCar.StartLineDeltaY = 0;
-       
 
 
 
-        worldWidth = 5500;
-        worldHeight = 5500;
 
-        var config = {
-            type: Phaser.AUTO,
-            width: 1200,
-            height: 1000,
-            physics: {
-                default: 'matter',
-                matter: {
-                    debug: false,
-                    gravity: {
-                        x: 0,
-                        y: 0
-                    }
-                }
-            },
-            scene: {
-                preload: preload,
-                create: create,
-                update: update
-            },
-            pixelArt: true
-        };
+        worldWidth = 6500;
+        worldHeight = 6500;
+
+
 
         var scaleSize = 2.2;
         var stepSize = 128 * scaleSize;
@@ -216,15 +395,19 @@
         var tracker2;
         var cursors;
         var TileScale = 4;
+        var map;
+        var trackLayer;
+        var text;
 
-        var game = new Phaser.Game(config);
+
 
 
 
 
         function createCars(gameObj, x, y, TileSize) {
-            car1 = new RaceCar(gameObj, x, y, TileSize, TileScale, 'car');
-          //  car2 = new RaceCar(gameObj, x, y, TileSize, TileScale, 'car');
+            car1 = new RaceCar(gameObj, x, y, TileSize, TileScale, 'car', 'GreenArrow');
+
+            //  car2 = new RaceCar(gameObj, x, y, TileSize, TileScale, 'car');
         }
 
         function isSlotOccupied(arr, x, y, step) {
@@ -247,59 +430,155 @@
             graphics4 = sceneObj.add.graphics({ fillStyle: { color: 0xffff00 } });
         }
 
-        function preload() {
-            this.load.image('soil', 'assets/textures/soil.png');
-            this.load.image('car', 'assets/sprites/car-yellow.png');
-            this.load.image('road', 'assets/textures/road2.png');
 
-            this.load.image('roadVertical', 'assets/Tiles/Asphalt road/road_asphalt01.png');
-            this.load.image('roadHorizontal', 'assets/Tiles/Asphalt road/road_asphalt02.png');
 
-            this.load.image('turnUpRight', 'assets/Tiles/Asphalt road/road_asphalt03.png');
-            this.load.image('turnUpLeft', 'assets/Tiles/Asphalt road/road_asphalt05.png');
-            this.load.image('turnDownRight', 'assets/Tiles/Asphalt road/road_asphalt39.png');
-            this.load.image('turnDownLeft', 'assets/Tiles/Asphalt road/road_asphalt41.png');
-
-            // this.load.image("trackTiles", 'assets/Spritesheets/spritesheet2.png');
-            this.load.spritesheet('trackTiles', 'assets/Spritesheets/new/AssetPack/road.png', { frameWidth: 88, frameHeight: 88 });
+        class GameScene extends Phaser.Scene {
+            constructor() {
+                super('GameScene');
+            }
 
 
 
-            this.load.tilemapTiledJSON("map", 'assets/Spritesheets/new/level1.json');
+            preload() {
+                this.load.image('soil', 'assets/textures/soil.png');
+                this.load.image('car', 'assets/sprites/car-yellow.png');
+                this.load.image('road', 'assets/textures/road2.png');
+
+                this.load.image('roadVertical', 'assets/Tiles/Asphalt road/road_asphalt01.png');
+                this.load.image('roadHorizontal', 'assets/Tiles/Asphalt road/road_asphalt02.png');
+
+                this.load.image('turnUpRight', 'assets/Tiles/Asphalt road/road_asphalt03.png');
+                this.load.image('turnUpLeft', 'assets/Tiles/Asphalt road/road_asphalt05.png');
+                this.load.image('turnDownRight', 'assets/Tiles/Asphalt road/road_asphalt39.png');
+                this.load.image('turnDownLeft', 'assets/Tiles/Asphalt road/road_asphalt41.png');
+
+
+
+                // this.load.image("trackTiles", 'assets/Spritesheets/spritesheet2.png');
+                this.load.spritesheet('trackTiles', 'assets/Spritesheets/new/AssetPack/road.png', { frameWidth: 88, frameHeight: 88 });
+
+
+
+                this.load.tilemapTiledJSON("map", 'assets/Spritesheets/new/level1.json');
+
+
+            }
+
+            create() {
+                this.add.tileSprite(worldWidth / 2, worldHeight / 2, worldWidth, worldHeight, 'soil');
+                this.cameras.main.roundPixels = true;
+
+                map = this.make.tilemap({ key: "map" });
+
+                const tileset = map.addTilesetImage("Road", "trackTiles", 88, 88, 1, 2);
+
+
+                trackLayer = map.createDynamicLayer(0, tileset, 0, 0);
+
+                trackLayer.setScale(TileScale);
+                trackLayer.setCollisionFromCollisionGroup();
+                //   map.setCollisionByExclusion([-1,9]);
+                console.log(tileset.tileProperties);
+                trackLayer.setCollisionByProperty({ collides: true });
+                this.matter.world.convertTilemapLayer(trackLayer);
+
+
+
+                var tile = trackLayer.findTile(t => t.index == 7);
+
+
+                createCars(this, tile.getCenterX(), tile.getCenterY(), tile.height);
+                this.matter.world.setBounds(0, 0, worldWidth, worldHeight);
+
+
+                var raceTrack = new RaceTrack(trackLayer);
+
+                this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
+
+                setCarTracker(this);
+                cursors = this.input.keyboard.createCursorKeys();
+                text = this.add.text(100, 100, '', { font: '16px Courier', fill: '#00ff00' });
+
+                this.cameras.main.startFollow(car1.Car, true);
+
+            }
+
+            update() {
+                car1.update(this);
+                // car2.update(this);
+
+
+            }
+        }
+
+        class UIScene extends Phaser.Scene {
+            constructor() {
+                super({ key: 'UIScene', active: true });
+                this.OffTrackArrow = null;
+            }
+
+            preload() {
+                this.load.image('GreenArrow', 'assets/Spritesheets/new/AssetPack/arrowGreen.png');
+            }
+            create() {
+                this.OffTrackArrow = this.matter.add.sprite(0, 0, 'GreenArrow');
+                this.OffTrackArrow.setActive(false);
+                this.OffTrackArrow.setVisible(false);
+
+
+                //  Grab a reference to the Game Scene
+                let ourGame = this.scene.get('GameScene');
+
+                //  Listen for events from it
+                ourGame.events.on('ShowOffTrackArrow', function (trX, trY, vDirAngle) {
+                    this.OffTrackArrow.setVisible(true);
+                    let gameheight = this.game.config.height;
+                    let gamewidth = this.game.config.width;
+
+                    this.OffTrackArrow.x = Math.min(gamewidth - this.OffTrackArrow.width / 2, Math.max(this.OffTrackArrow.width / 2, trX));
+                    this.OffTrackArrow.y = Math.min(gameheight - this.OffTrackArrow.height / 2, Math.max(this.OffTrackArrow.height / 2, trY));
+                    this.OffTrackArrow.setRotation(Math.PI / 2 + vDirAngle);
+
+                }, this);
+
+                ourGame.events.on('HideOffTrackArrow', function () {
+                    this.OffTrackArrow.setVisible(false);
+                }, this);
+            }
 
 
         }
-        function create() {
-          //  this.add.tileSprite(worldWidth / 2, worldHeight / 2, worldWidth, worldHeight, 'soil');
-            this.cameras.main.roundPixels = true;
 
-            const map = this.make.tilemap({ key: "map" });
+        var config = {
+            type: Phaser.AUTO,
+            width: 1400,
+            height: 1200,
+            physics: {
+                default: 'matter',
+                matter: {
+                    debug: false,
+                    gravity: {
+                        x: 0,
+                        y: 0
+                    }
+                }
+            },
+            // scene: {
+            //      preload: preload,
+            //      create: create,
+            //       update: update
+            //   },
+            scene: [GameScene, UIScene],
+            pixelArt: true
+        };
 
-            const tileset = map.addTilesetImage("Road", "trackTiles", 88, 88, 1, 2);
-        
-
-            var trackLayer = map.createStaticLayer(0, tileset, 0, 0);
-            trackLayer.setScale(TileScale);
-          
-            var tile = trackLayer.findTile(t => t.index == 7);
-
-            this.cameras.main.setSize(worldWidth, worldHeight);
-
-            createCars(this, tile.pixelX, tile.pixelY, tile.height);
-            this.matter.world.setBounds(0, 0, worldWidth, worldHeight);
-            setCarTracker(this);
-            cursors = this.input.keyboard.createCursorKeys();
-            text = this.add.text(100, 100, '', { font: '16px Courier', fill: '#00ff00' });
-        }
-
-        function update() 
-        {
-            car1.update(this);
-           // car2.update(this);
+        const TOP = 1;
+        const LEFT = 2;
+        const BOTTOM = 3;
+        const RIGHT = 4;
 
 
-        }
-
+        var game = new Phaser.Game(config);
 
     </script>
 
