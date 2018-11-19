@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.2" tiledversion="1.2.0" orientation="orthogonal" renderorder="right-down" width="17" height="17" tilewidth="88" tileheight="88" infinite="0" nextlayerid="6" nextobjectid="3">
+ <tileset firstgid="1" name="Road" tilewidth="88" tileheight="88" spacing="2" margin="1" tilecount="12" columns="2">
+  <image source="AssetPack/Road.png" width="180" height="540"/>
+  <tile id="0">
+   <properties>
+    <property name="TileId" type="int" value="-1"/>
+    <property name="collides" type="bool" value="false"/>
+    <property name="nextTileId" type="int" value="0"/>
+    <property name="startLine" type="bool" value="false"/>
+    <property name="turn" type="bool" value="false"/>
+    <property name="visited" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="1">
+   <properties>
+    <property name="TileId" type="int" value="-1"/>
+    <property name="collides" type="bool" value="false"/>
+    <property name="nextTileId" type="int" value="0"/>
+    <property name="startLine" type="bool" value="false"/>
+    <property name="turn" type="bool" value="false"/>
+    <property name="visited" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="2">
+   <properties>
+    <property name="TileId" type="int" value="-1"/>
+    <property name="collides" type="bool" value="false"/>
+    <property name="nextTileId" type="int" value="0"/>
+    <property name="startLine" type="bool" value="false"/>
+    <property name="turn" type="bool" value="true"/>
+    <property name="visited" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="3">
+   <properties>
+    <property name="TileId" type="int" value="-1"/>
+    <property name="collides" type="bool" value="false"/>
+    <property name="nextTileId" type="int" value="0"/>
+    <property name="startLine" type="bool" value="false"/>
+    <property name="turn" type="bool" value="true"/>
+    <property name="visited" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="4">
+   <properties>
+    <property name="TileId" type="int" value="-1"/>
+    <property name="collides" type="bool" value="false"/>
+    <property name="nextTileId" type="int" value="0"/>
+    <property name="startLine" type="bool" value="false"/>
+    <property name="turn" type="bool" value="true"/>
+    <property name="visited" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="5">
+   <properties>
+    <property name="TileId" type="int" value="-1"/>
+    <property name="collides" type="bool" value="false"/>
+    <property name="nextTileId" type="int" value="0"/>
+    <property name="startLine" type="bool" value="false"/>
+    <property name="turn" type="bool" value="true"/>
+    <property name="visited" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="6">
+   <properties>
+    <property name="TileId" type="int" value="-1"/>
+    <property name="collides" type="bool" value="false"/>
+    <property name="direction" value="x"/>
+    <property name="nextTileId" type="int" value="0"/>
+    <property name="startLine" type="bool" value="true"/>
+    <property name="turn" type="bool" value="false"/>
+    <property name="visited" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="7">
+   <properties>
+    <property name="TileId" type="int" value="-1"/>
+    <property name="collides" type="bool" value="false"/>
+    <property name="direction" value="y"/>
+    <property name="nextTileId" type="int" value="0"/>
+    <property name="startLine" type="bool" value="true"/>
+    <property name="turn" type="bool" value="false"/>
+    <property name="visited" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="8">
+   <properties>
+    <property name="TileId" type="int" value="-1"/>
+    <property name="collides" type="bool" value="false"/>
+    <property name="nextTileId" type="int" value="0"/>
+    <property name="startLine" type="bool" value="false"/>
+    <property name="turn" type="bool" value="false"/>
+    <property name="visited" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="9">
+   <properties>
+    <property name="TileId" type="int" value="-1"/>
+    <property name="collides" type="bool" value="false"/>
+    <property name="nextTileId" type="int" value="0"/>
+    <property name="startLine" type="bool" value="false"/>
+    <property name="turn" type="bool" value="false"/>
+    <property name="visited" type="bool" value="false"/>
+   </properties>
+  </tile>
+  <tile id="10">
+   <properties>
+    <property name="TileId" type="int" value="-1"/>
+    <property name="collides" type="bool" value="true"/>
+    <property name="nextTileId" type="int" value="0"/>
+    <property name="startLine" type="bool" value="false"/>
+    <property name="turn" type="bool" value="false"/>
+    <property name="visited" type="bool" value="false"/>
+   </properties>
+   <objectgroup draworder="index">
+    <object id="2" x="2" y="30" width="85" height="25"/>
+   </objectgroup>
+  </tile>
+  <tile id="11">
+   <properties>
+    <property name="TileId" type="int" value="-1"/>
+    <property name="collides" type="bool" value="false"/>
+    <property name="nextTileId" type="int" value="0"/>
+    <property name="startLine" type="bool" value="false"/>
+    <property name="turn" type="bool" value="false"/>
+   </properties>
+  </tile>
+ </tileset>
+ <layer id="5" name="Tile Layer 1" width="17" height="17">
+  <data encoding="csv">
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+3,1,7,1,1,1,1,1,1,1,1,1,1,1,1,1,4,
+2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,
+2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,
+2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,
+2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,
+2,0,0,0,0,0,0,0,0,0,0,3,1,1,1,4,2,
+5,1,1,1,1,1,1,1,1,1,4,2,0,0,0,5,6,
+0,0,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,
+0,0,0,0,0,0,0,0,0,0,2,2,0,0,0,0,0,
+0,0,3,1,1,1,1,1,1,1,6,2,0,0,0,0,0,
+0,0,2,0,0,0,0,0,0,0,0,2,0,0,0,0,0,
+0,0,2,0,0,0,0,0,0,0,0,2,0,0,0,0,0,
+0,0,5,4,0,0,0,0,0,0,0,5,1,1,1,1,4,
+0,0,0,5,1,1,1,1,1,1,1,1,1,1,1,1,6,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+</data>
+ </layer>
+</map>
