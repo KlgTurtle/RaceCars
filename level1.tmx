@@ -51,6 +51,11 @@
     <property name="turn" type="bool" value="true"/>
     <property name="visited" type="bool" value="false"/>
    </properties>
+   <objectgroup draworder="index">
+    <object id="1" x="87" y="85">
+     <polygon points="0,0 -27,2 -46,-8 -62,-22 -74,-36 -83,-58 -86,-88 -2,-87"/>
+    </object>
+   </objectgroup>
   </tile>
   <tile id="5">
    <properties>

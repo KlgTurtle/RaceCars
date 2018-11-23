@@ -170,6 +170,61 @@
                 }, 
                 {
                  "id":4,
+                 "objectgroup":
+                    {
+                     "draworder":"index",
+                     "name":"",
+                     "objects":[
+                            {
+                             "height":0,
+                             "id":1,
+                             "name":"",
+                             "polygon":[
+                                    {
+                                     "x":0,
+                                     "y":0
+                                    }, 
+                                    {
+                                     "x":-27,
+                                     "y":2
+                                    }, 
+                                    {
+                                     "x":-46,
+                                     "y":-8
+                                    }, 
+                                    {
+                                     "x":-62,
+                                     "y":-22
+                                    }, 
+                                    {
+                                     "x":-74,
+                                     "y":-36
+                                    }, 
+                                    {
+                                     "x":-83,
+                                     "y":-58
+                                    }, 
+                                    {
+                                     "x":-86,
+                                     "y":-88
+                                    }, 
+                                    {
+                                     "x":-2,
+                                     "y":-87
+                                    }],
+                             "rotation":0,
+                             "type":"",
+                             "visible":true,
+                             "width":0,
+                             "x":87,
+                             "y":85
+                            }],
+                     "opacity":1,
+                     "type":"objectgroup",
+                     "visible":true,
+                     "x":0,
+                     "y":0
+                    },
                  "properties":[
                         {
                          "name":"TileId",
