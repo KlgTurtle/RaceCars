@@ -2,6 +2,7 @@ class UIScene extends Phaser.Scene {
     constructor() {
         super({ key: 'UIScene', active: true });
         this.OffTrackArrow = null;
+        
     }
     preload() {
         this.load.image('GreenArrow', 'assets/Spritesheets/new/AssetPack/arrowGreen.png');
@@ -18,11 +19,13 @@ class UIScene extends Phaser.Scene {
         this.LapTimeFloat = 0;
         this.LapsFinished = 0;
         this.BestLapTime = 0;
+        
 
         //  Grab a reference to the Game Scene
         let ourGame = this.scene.get('GameScene');
         //  Listen for events from it
-        ourGame.events.on('ShowOffTrackArrow', function (trX, trY, vDirAngle) {
+        ourGame.events.on('ShowOffTrackArrow', function (trX, trY, vDirAngle) 
+        {
             this.OffTrackArrow.setVisible(true);
             let gameheight = this.game.config.height;
             let gamewidth = this.game.config.width;
@@ -59,6 +62,13 @@ class UIScene extends Phaser.Scene {
     }
     update(time, delta)
     {
+        let ourGame = this.scene.get('GameScene');
+        
+
+        this.LapTime.setRotation(-ourGame.cameras.main.rotation);
+        this.LastLapTime.setRotation(-ourGame.cameras.main.rotation);
+        
+
         if (this.LapStarted)
         {
             this.LapTimeFloat += delta;

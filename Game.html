@@ -56,8 +56,8 @@
         
        
 
-        worldWidth = 16500;
-        worldHeight = 16500;
+        worldWidth = 17000;
+        worldHeight = 17000;
         var scaleSize = 2.2;
         var stepSize = 128 * scaleSize;
         var mapBitMap = new MapBitMap(worldWidth, worldHeight, stepSize, stepSize);
@@ -69,9 +69,9 @@
         var map;
         var trackLayer;
         var text;
-        function createCars(gameObj, x, y, TileSize, raceTrack) {
+        function createCars(gameObj, x, y, TileSize, raceTrack) 
+        {
             car1 = new RaceCar(gameObj, x, y, TileSize, TileScale, raceTrack, 'car', 'GreenArrow');
-            //  car2 = new RaceCar(gameObj, x, y, TileSize, TileScale, 'car');
         }
         function isSlotOccupied(arr, x, y, step) {
             return (arr[Math.floor(x / step)][Math.floor(y / step)]);
@@ -104,7 +104,6 @@
                 this.load.image('turnUpLeft', 'assets/Tiles/Asphalt road/road_asphalt05.png');
                 this.load.image('turnDownRight', 'assets/Tiles/Asphalt road/road_asphalt39.png');
                 this.load.image('turnDownLeft', 'assets/Tiles/Asphalt road/road_asphalt41.png');
-                // this.load.image("trackTiles", 'assets/Spritesheets/spritesheet2.png');
                 this.load.spritesheet('trackTiles', 'assets/Spritesheets/new/AssetPack/road.png', { frameWidth: 88, frameHeight: 88 });
                 this.load.tilemapTiledJSON("map", 'assets/Spritesheets/new/level1.json');
             }
@@ -115,24 +114,39 @@
                 const tileset = map.addTilesetImage("Road", "trackTiles", 88, 88, 1, 2);
                 trackLayer = map.createDynamicLayer(0, tileset, 0, 0);
                 trackLayer.setScale(TileScale);
-                trackLayer.setCollisionFromCollisionGroup();
-                //   map.setCollisionByExclusion([-1,9]);
-                console.log(tileset.tileProperties);
-                trackLayer.setCollisionByProperty({ collides: true });
-                this.matter.world.convertTilemapLayer(trackLayer);
+
                 var tile = trackLayer.findTile(t => t.index == 7);
                 var raceTrack = new RaceTrack(trackLayer);
                 createCars(this, tile.getCenterX(), tile.getCenterY(), tile.height, raceTrack);
                 this.matter.world.setBounds(0, 0, worldWidth, worldHeight);
               
                 this.cameras.main.setBounds(0, 0, worldWidth, worldHeight);
-                setCarTracker(this);
+
                 cursors = this.input.keyboard.createCursorKeys();
                 text = this.add.text(100, 100, '', { font: '16px Courier', fill: '#00ff00' });
                 this.cameras.main.startFollow(car1.Car, true);
                 this.cameras.main.zoom = 0.5;
                 this.minimap = this.cameras.add(this.game.config.width-300, this.game.config.height-200, 300, 200).setZoom(0.02).setName('mini');
                 this.minimap.startFollow(car1.Car, true);
+                
+                this.input.keyboard.on('keydown_L', function (event) 
+                {
+                    let UIScene = this.scene.scene.get('UIScene');
+                    if (!car1.Lmode)
+                    {            
+                        this.scene.cameras.main.setAngle(270);
+                        UIScene.cameras.main.setAngle(270);
+                        this.scene.cameras.main.useBounds = false;             
+                    }
+                    else
+                    {
+                       this.scene.cameras.main.setAngle(0);
+                       UIScene.cameras.main.setAngle(0);
+                       this.scene.cameras.main.useBounds = true;
+                    }
+                    car1.Lmode = !car1.Lmode;
+                });
+
             }
             update() {
                 car1.update(this);
@@ -154,11 +168,7 @@
                     }
                 }
             },
-            // scene: {
-            //      preload: preload,
-            //      create: create,
-            //       update: update
-            //   },
+           
             scene: [GameScene, UIScene],
             pixelArt: true
         };
