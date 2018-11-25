@@ -7,7 +7,7 @@ class RaceCar {
         this.TileSize = TileSize;
         this.TileScale = TileScale;
         //  this.Car.setFrictionStatic(1);
-        this.Car.setMass(1.5);
+        this.Car.setMass(3);
         this.WheelDir = 0;
         this.Car.setScale(1.8);
         this.Car.depth = 1;
@@ -30,10 +30,22 @@ class RaceCar {
         this.Slipping = false;
         this.LastSlipPoint1 = null;
         this.LastSlipPoint2 = null;
-        this.graphics = SceneObj.add.graphics({  fillStyle: { color: 0x000000 }, lineStyle: { color: 0x000000, width: 7} });
-        this.graphics.depth = 0;
+        this.GraphicsPool = [];
+        this.GraphicsPoolSize = 5;
+        this.GraphicsPoolCurr = 0;
+        this.ImpulseCorrectionStarted = false;
+        this.ImpulseCorrectionDelta = 0;
+        this.OriginalAngularVel = 0;
+
+
+
+
         this.offTrackPointer = new Phaser.Geom.Triangle;
         this.Lmode = false;
+
+        for (var i = 0; i < this.GraphicsPoolSize; ++i) {
+            this.GraphicsPool[i] = SceneObj.add.graphics({ fillStyle: { color: 0x000000 }, lineStyle: { color: 0x000000, width: 7 } });
+        }
 
         if (RaceCar.StartLineDeltaX == RaceCar.StartLineDeltaY) {
             RaceCar.StartLineDeltaY -= (TileSize / 2) * TileScale;
@@ -47,7 +59,7 @@ class RaceCar {
     ShowOffTrackArrow(RaceCarObj, SceneObj) {
         // vector directed from the car to the last valid tile
         var vDir = new Phaser.Math.Vector2(RaceCarObj.LastValidTile.getCenterX() - RaceCarObj.Car.x,
-        RaceCarObj.LastValidTile.getCenterY() - RaceCarObj.Car.y);
+            RaceCarObj.LastValidTile.getCenterY() - RaceCarObj.Car.y);
         vDir.normalize();
         var vDirPerp = new Phaser.Math.Vector2(-vDir.y, vDir.x);
         var trX = 0, trY = 0;
@@ -93,12 +105,10 @@ class RaceCar {
             RaceCarObj.LastValidTile.setAlpha(RaceCarObj.LastValidTile.alpha + 0.05 * RaceCarObj.alphaFactor);
 
             var LastValidTileRect = RaceCarObj.LastValidTile.getBounds(SceneObj.cameras.main);
-            if (!Phaser.Geom.Rectangle.Overlaps(SceneObj.cameras.main.worldView, LastValidTileRect)) 
-            {
+            if (!Phaser.Geom.Rectangle.Overlaps(SceneObj.cameras.main.worldView, LastValidTileRect)) {
                 RaceCarObj.ShowOffTrackArrow(RaceCarObj, SceneObj);
             }
-            else 
-            {
+            else {
                 SceneObj.events.emit('HideOffTrackArrow');
             }
         }
@@ -124,7 +134,7 @@ class RaceCar {
         // ]);
     }
     checkTileValidity(SceneObj, T) {
-        //   this.graphics.clear();
+
         var factor = 1;
         if (T != null && ((this.LastValidTile == null) ||
             (this.LastValidTile.properties.TileId == T.properties.TileId) ||
@@ -140,7 +150,7 @@ class RaceCar {
             }
             return factor;
         }
-   //     factor = (T == null) ? factor / 2 : factor;
+        factor = (T == null) ? factor / 2 : factor;
         if (this.LastValidTile != null) {
             // We're not on track, if we're far enough we'll trigger the "off track" event.
             if (T == null) {
@@ -190,56 +200,50 @@ class RaceCar {
         return factor;
     }
 
-    CheckIfSlipping(ForwardSpeed, SidewaySpeed, BackWheelLeft, BackWheelRight, CurrTile)
-    {
-        if (CurrTile == null) 
-        {
+    CheckIfSlipping(ForwardSpeed, SidewaySpeed, BackWheelLeft, BackWheelRight, CurrTile) {
+        if (CurrTile == null) {
             this.Slipping = false;
             this.LastSlipPoint1 = null;
             this.LastSlipPoint2 = null;
             return;
         }
 
-        var v = CurrTile.tileset[0].getTileData(CurrTile.index);
+        // var v = CurrTile.tileset[0].getTileData(CurrTile.index);
         var CurrTileRect = CurrTile.getBounds();
         var TileContainsBackWheels = Phaser.Geom.Rectangle.Contains(CurrTileRect, BackWheelLeft.x, BackWheelLeft.y) &&
-                                     Phaser.Geom.Rectangle.Contains(CurrTileRect, BackWheelRight.x, BackWheelRight.y);
-        if ((TileContainsBackWheels) && (ForwardSpeed > 0) && (Math.abs(SidewaySpeed) > 1) && (Math.abs(SidewaySpeed) >= ForwardSpeed * 0.5)) 
-        {
-            if (!this.Slipping)
-            {
-                this.graphics.clear();
+            Phaser.Geom.Rectangle.Contains(CurrTileRect, BackWheelRight.x, BackWheelRight.y);
+        if ((TileContainsBackWheels) && (ForwardSpeed > 0) && (Math.abs(SidewaySpeed) > 1) && (Math.abs(SidewaySpeed) >= ForwardSpeed)) {
+            if (!this.Slipping) {
+                this.GraphicsPool[this.GraphicsPoolCurr].clear();
             }
             this.Slipping = true;
         }
         else {
-            
+
             this.Slipping = false;
             this.LastSlipPoint1 = null;
             this.LastSlipPoint2 = null;
         }
     }
-    
-    RenderSlipMarks(point1, point2)
-    {
-        if (this.Slipping)
-        {
-            if (this.LastSlipPoint1 == null)
-            {
+
+    RenderSlipMarks(point1, point2) {
+        if (this.Slipping) {
+            if (this.LastSlipPoint1 == null) {
                 this.LastSlipPoint1 = point1;
                 this.LastSlipPoint2 = point2;
             }
-            else if (this.LastSlipPoint1 != point1 || this.LastSlipPoint2 != point2)
-            {
-                this.graphics.strokePoints([point1, this.LastSlipPoint1]);
-                this.graphics.strokePoints([point2, this.LastSlipPoint2]);
+            else if (this.LastSlipPoint1 != point1 || this.LastSlipPoint2 != point2) {
+                this.GraphicsPool[this.GraphicsPoolCurr].strokePoints([point1, this.LastSlipPoint1]);
+                this.GraphicsPool[this.GraphicsPoolCurr].strokePoints([point2, this.LastSlipPoint2]);
                 this.LastSlipPoint1 = point1;
                 this.LastSlipPoint2 = point2;
+                this.GraphicsPoolCurr = (this.GraphicsPoolCurr + 1) % this.GraphicsPoolSize;
             }
         }
     }
 
-    update(SceneObj) {
+    update(SceneObj, time, delta) {
+        var deltaSecs = delta / 1000;
         this.debug(SceneObj);
         var origX = this.Car.x;
         var origY = this.Car.y;
@@ -256,13 +260,18 @@ class RaceCar {
 
 
         var CarVel = new Phaser.Math.Vector2({ x: this.Car.body.velocity.x, y: this.Car.body.velocity.y });
+
         var SidewaySpeed = CarVel.dot(FrontL2R);
         var ForwardSpeed = CarVel.dot(Front2Back);
+
+
+
 
         this.CheckIfSlipping(ForwardSpeed, SidewaySpeed, point1, point2, CurrTile);
 
         var PrevValidTile = this.LastValidTile;
         var powerFactor = this.checkTileValidity(SceneObj, CurrTile);
+        powerFactor = 1; // remove
         if (this.NearLapEnd &&
             ((this.raceTrack.GetStartLineAxis() == 'x' && this.Car.x >= this.raceTrack.StartLineTile.getRight()) ||
                 (this.raceTrack.GetStartLineAxis() == 'y' && this.Car.y >= this.raceTrack.StartLineTile.getBottom()))) {
@@ -277,43 +286,69 @@ class RaceCar {
 
 
         if (cursors.left.isDown) {
-            this.WheelDir = Math.min(this.WheelDir + 0.1, 1);
+            this.WheelDir = Math.min(this.WheelDir + 0.75 * deltaSecs, 1);
         }
-        if (cursors.right.isDown) {
-            this.WheelDir = Math.max(this.WheelDir - 0.1, -1);
+        else if (cursors.right.isDown) {
+            this.WheelDir = Math.max(this.WheelDir - 0.75 * deltaSecs, -1);
         }
+        else 
+        {
+            this.WheelDir *= 0.0001*deltaSecs;
+        }
+
         if (this.WheelDir != 0) {
             var steeringFactor = (this.Power >= 0) ? 1 : -1;
-            this.Car.applyForceFrom(FrontCenter, FrontL2R.clone().scale(-steeringFactor * this.Car.body.speed * this.Car.body.speed * this.WheelDir / 200000));
+            this.Car.applyForceFrom(FrontCenter, FrontL2R.clone().scale(-steeringFactor * this.Car.body.speed * this.Car.body.speed * this.WheelDir / 35000));
         }
 
 
         if (cursors.up.isDown) {
-            this.Power = Math.min(ForwardSpeed > 0 ? this.Power + 3 : this.Power + 1, 25);
+            this.Power = Math.min(ForwardSpeed > 0 ? this.Power + 20 * deltaSecs : this.Power + 1 * deltaSecs, 50);
         }
         else if (cursors.down.isDown) {
-                this.Power = Math.max(-10, ForwardSpeed > 1  ? this.Power/1.6 : this.Power-0.5);
+            this.Power = Math.max(-10, ForwardSpeed > 1 ? this.Power - 1 * deltaSecs : this.Power - 0.5 * deltaSecs);
         }
-        else if (this.Power > 0) {
-            this.Power /= 1.01;
-        }
-        if (!cursors.left.isDown && !cursors.right.isDown && this.WheelDir != 0) 
-        {
-            this.WheelDir /= 2000;
-            if (Math.abs(this.WheelDir) < 0.0001) {
+         else if (this.Power > 0) {
+             this.Power *= 0.1*deltaSecs;
+         }
+        if (!cursors.left.isDown && !cursors.right.isDown && cursors.up.isDown && this.WheelDir != 0) {
+
+            this.WheelDir /= 2;
+            if (Math.abs(this.WheelDir) < 0.001) {
                 this.WheelDir = 0;
             }
 
+            if (!this.ImpulseCorrectionStarted) {
+                this.ImpulseCorrectionStarted = true;
+                this.OriginalAngularVel = this.Car.body.angularVelocity;
+
+            }
+
+            this.ImpulseCorrectionDelta += delta;
+            var newAngularVelocity = Math.sign(this.OriginalAngularVel) *
+                Math.max(0, Math.abs(this.OriginalAngularVel) - this.ImpulseCorrectionDelta * Math.abs(this.OriginalAngularVel) / 50);
+            this.Car.setAngularVelocity(newAngularVelocity);
+
+
+
+
 
         }
+        else {
+            this.ImpulseCorrectionStarted = false;
+            this.ImpulseCorrectionDelta = 0;
+        }
+
 
 
 
 
         this.Car.applyForceFrom(BackCenter, Front2Back.clone().scale(powerFactor * this.Power * 0.001));
-        if (this.Car.body.speed > 0.01) {
+        if (this.Car.body.speed > 0.01) 
+        {
             var newZoom = Math.max(0.29, 0.5 - this.Car.body.speed / 100);
-            if (Math.abs(SceneObj.cameras.main.zoom - newZoom) > 0.001) {
+            if (Math.abs(SceneObj.cameras.main.zoom - newZoom) > 0.001) 
+            {
                 SceneObj.cameras.main.zoom += (newZoom - SceneObj.cameras.main.zoom) > 0 ? 0.001 : -0.001;
             }
             else {
@@ -322,14 +357,27 @@ class RaceCar {
         }
 
 
-        if (this.Lmode) {
+        if (this.Lmode) 
+        {
+            var newAngle = 270 - Front2Back.angle() * (180 / Math.PI);
+            // var angleDiff = (newAngle - SceneObj.cameras.main.rotation * (180 / Math.PI)) % 360;
+            // var angleDiffAbs = Math.min(Math.abs(angleDiff), 360 - Math.abs(angleDiff));
+            // if (angleDiffAbs > 3)
+            // {
+            //     angleDiff = angleDiff* 0.9;
+            //     newAngle = SceneObj.cameras.main.rotation * (180 / Math.PI) + angleDiff;
+            // }
+
             let UIScene = SceneObj.scene.get('UIScene');
-            SceneObj.cameras.main.setAngle(270 - Front2Back.angle() * (180 / Math.PI));
-            UIScene.cameras.main.setAngle(270 - Front2Back.angle() * (180 / Math.PI));
+      //      SceneObj.cameras.main.setAngle(270 - Front2Back.angle() * (180 / Math.PI));
+    //        UIScene.cameras.main.setAngle(270 - Front2Back.angle() * (180 / Math.PI));
+
+            SceneObj.cameras.main.setAngle(newAngle);
+            UIScene.cameras.main.setAngle(newAngle);
         }
 
         this.RenderSlipMarks(point1, point2);
-        
+
 
     }
 }
