@@ -3,6 +3,9 @@ class UIScene extends Phaser.Scene {
         super({ key: 'UIScene', active: true });
         this.OffTrackArrow = null;
         this.ShowDebug = false;
+        this.ForwardForceDebug = null;
+        this.SidewayForceDebug = null;
+
         this.ToggleDebug = function()
         {
             this.ShowDebug = !this.ShowDebug;
@@ -31,10 +34,20 @@ class UIScene extends Phaser.Scene {
                 var ForwardSpeed = CarVel.dot(Front2Back);
                 this.DebugText.setText(['Sideways Speed: ' + Number.parseFloat(SidewaySpeed).toFixed(2),
                 'Forward Speed: ' + Number.parseFloat(ForwardSpeed).toFixed(2),
-                'Angular Velocity: ' + Number.parseFloat(GameCar.Car.body.angularVelocity).toFixed(2)]);
+                'Angular Velocity: ' + Number.parseFloat(GameCar.Car.body.angularVelocity).toFixed(2),
+                'Power:' + Number.parseFloat(GameCar.Power).toFixed(2)]);
+
+                this.ForwardForceDebug.setTo(this.game.config.width/2, this.game.config.height/2,
+                    this.game.config.width/2 + 150, this.game.config.height/2 );
+
+             //   this.ForwardForceDebug.setVisible(true);
+              //  this.SidewayForceDebug.setVisible(true);
+
             }
             else
             {
+                this.ForwardForceDebug.setVisible(false);
+                this.SidewayForceDebug.setVisible(false);
                 this.DebugText.setText('');
             }
         }
@@ -44,7 +57,9 @@ class UIScene extends Phaser.Scene {
         this.load.image('GreenArrow', 'assets/textures/arrowGreen.png');
     }
     create() {
-
+        this.ForwardForceDebug = this.add.line(50, 50, 150, 150, 300, 300, 0x00ff00);
+        this.ForwardForceDebug.setDepth(3);
+        this.SidewayForceDebug = new Phaser.GameObjects.Line(this);
         this.OffTrackArrow = this.matter.add.sprite(0, 0, 'GreenArrow');
         this.OffTrackArrow.setActive(false);
         this.OffTrackArrow.setVisible(false);
