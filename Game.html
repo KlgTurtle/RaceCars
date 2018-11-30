@@ -70,6 +70,7 @@
         var text;
         function createCars(gameObj, x, y, TileSize, raceTrack) {
             car1 = new RaceCar(gameObj, x, y, TileSize, TileScale, raceTrack, 'car', 'GreenArrow');
+            car2 = new RaceCarAI(gameObj, x, y, TileSize, TileScale, raceTrack, 'car', 'GreenArrow');
         }
         function isSlotOccupied(arr, x, y, step) {
             return (arr[Math.floor(x / step)][Math.floor(y / step)]);
@@ -131,7 +132,7 @@
 
                 cursors = this.input.keyboard.createCursorKeys();
                 text = this.add.text(100, 100, '', { font: '16px Courier', fill: '#00ff00' });
-                this.cameras.main.startFollow(car1.Car, true);
+                this.cameras.main.startFollow(car2.Car, true);
                 this.cameras.main.zoom = 0.5;
                 this.minimap = this.cameras.add(this.game.config.width - 300, this.game.config.height - 200, 300, 200).setZoom(0.02).setName('mini');
                 this.minimap.startFollow(car1.Car, true);
@@ -160,6 +161,7 @@
             }
             update(time, delta) {
                 car1.update(this, time, delta);
+                car2.update(this, time, delta);
                 // car2.update(this);
             }
 

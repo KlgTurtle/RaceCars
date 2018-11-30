@@ -3,8 +3,7 @@ class UIScene extends Phaser.Scene {
         super({ key: 'UIScene', active: true });
         this.OffTrackArrow = null;
         this.ShowDebug = false;
-        this.ForwardForceDebug = null;
-        this.SidewayForceDebug = null;
+
 
         this.ToggleDebug = function()
         {
@@ -37,11 +36,7 @@ class UIScene extends Phaser.Scene {
                 'Angular Velocity: ' + Number.parseFloat(GameCar.Car.body.angularVelocity).toFixed(2),
                 'Power:' + Number.parseFloat(GameCar.Power).toFixed(2)]);
 
-                this.ForwardForceDebug.setTo(this.game.config.width/2, this.game.config.height/2,
-                    this.game.config.width/2 + 150, this.game.config.height/2 );
-
-             //   this.ForwardForceDebug.setVisible(true);
-              //  this.SidewayForceDebug.setVisible(true);
+           
 
             }
             else
