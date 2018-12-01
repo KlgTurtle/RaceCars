@@ -92,9 +92,16 @@
             constructor() {
                 super('GameScene');
                 this.minimap = null;
-                this.GetCar = function()
-                {
-                    return car1;
+                this.FollowedCar = null;
+                this.GetCar = function () {
+                    return this.FollowedCar;
+                }
+                this.FollowCar = function (SceneObj, car) {
+                    this.cameras.main.startFollow(car.Car, true);
+                    this.cameras.main.zoom = 0.5;
+                    this.minimap = this.cameras.add(this.game.config.width - 300, this.game.config.height - 200, 300, 200).setZoom(0.02).setName('mini');
+                    this.minimap.startFollow(car.Car, true);
+                    this.FollowedCar = car;
                 }
             }
             preload() {
@@ -115,6 +122,9 @@
                 // this.load.spritesheet('trackTiles', 'assets/Spritesheets/new/AssetPack/road.png', { frameWidth: 88, frameHeight: 88 });
                 // this.load.tilemapTiledJSON("map", 'assets/Spritesheets/new/level1.json');
             }
+
+
+
             create() {
                 this.add.tileSprite(worldWidth / 2, worldHeight / 2, worldWidth, worldHeight, 'soil');
                 this.cameras.main.roundPixels = true;
@@ -132,10 +142,9 @@
 
                 cursors = this.input.keyboard.createCursorKeys();
                 text = this.add.text(100, 100, '', { font: '16px Courier', fill: '#00ff00' });
-                this.cameras.main.startFollow(car2.Car, true);
-                this.cameras.main.zoom = 0.5;
-                this.minimap = this.cameras.add(this.game.config.width - 300, this.game.config.height - 200, 300, 200).setZoom(0.02).setName('mini');
-                this.minimap.startFollow(car1.Car, true);
+
+                this.FollowCar(this, car2);
+
 
                 this.input.keyboard.on('keydown_L', function (event) {
                     let UIScene = this.scene.scene.get('UIScene');
@@ -152,8 +161,7 @@
                     car1.Lmode = !car1.Lmode;
                 });
 
-                this.input.keyboard.on('keydown_D', function (event) 
-                {
+                this.input.keyboard.on('keydown_D', function (event) {
                     let UIScene = this.scene.scene.get('UIScene');
                     UIScene.ToggleDebug();
                 });

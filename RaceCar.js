@@ -37,7 +37,6 @@ class RaceCar {
         this.ImpulseCorrectionDelta = 0;
         this.OriginalAngularVel = 0;
         this.powerFactor = 1;
-        this.CurrTile = null;
         this.RearLeft = this.Car.getTopLeft();
         this.RearRight = this.Car.getBottomLeft();
         this.FrontLeft = this.Car.getTopRight();
@@ -49,6 +48,7 @@ class RaceCar {
         this.CarVel = new Phaser.Math.Vector2;
         this.SidewaySpeed = 0;
         this.ForwardSpeed = 0;
+        this.CurrTile = trackLayer.getTileAt(trackLayer.worldToTileX(this.Car.x), trackLayer.worldToTileY(this.Car.y));
 
         this.Lmode = false;
 
@@ -57,17 +57,16 @@ class RaceCar {
         }
 
         if (RaceCar.StartLineDeltaX == RaceCar.StartLineDeltaY) {
-            RaceCar.StartLineDeltaY -= (TileSize / 2) * TileScale;
+            RaceCar.StartLineDeltaY -= (TileSize / 3) * TileScale;
         }
         else {
-            RaceCar.StartLineDeltaX -= (TileSize / 2) * TileScale;
+            RaceCar.StartLineDeltaX -= (TileSize / 3) * TileScale;
         }
         SceneObj.events.once('offTrack', this.handleOffTrack, this);
         //SceneObj.
     }
 
-    IsHuman()
-    {
+    IsHuman() {
         return true;
     }
 
@@ -208,8 +207,7 @@ class RaceCar {
                 }
                 else {
                     this.OnTrack = false;
-                    if (this.IsHuman())
-                    {
+                    if (this.IsHuman()) {
                         SceneObj.events.emit('offTrack', this, SceneObj);
                     }
                 }
@@ -296,7 +294,7 @@ class RaceCar {
             this.Power = Math.max(-10, this.ForwardSpeed > 0 ? this.Power - 28 * deltaSecs : this.Power - 10 * deltaSecs);
         }
         else if (this.Power != 0) {
-            var PowerDamp = this.ForwardSpeed > 1 ? 8 * deltaSecs : 30 * deltaSecs;
+            var PowerDamp = this.ForwardSpeed > 1 ? 8 * deltaSecs : 100 * deltaSecs;
 
             this.Power = PowerDamp > Math.abs(this.Power) ? 0 : this.Power - Math.sign(this.Power) * PowerDamp;
         }
@@ -330,42 +328,36 @@ class RaceCar {
 
     }
 
-    CheckLapEnd(SceneObj)
-    {
-        
+    CheckLapEnd(SceneObj) {
+
         if (this.NearLapEnd &&
             ((this.raceTrack.GetStartLineAxis() == 'x' && this.Car.x >= this.raceTrack.StartLineTile.getRight()) ||
                 (this.raceTrack.GetStartLineAxis() == 'y' && this.Car.y >= this.raceTrack.StartLineTile.getBottom()))) {
             this.NearLapEnd = false;
 
-            if (this.IsHuman())
-            {
+            if (this.IsHuman()) {
                 SceneObj.events.emit('LapEnd');
                 SceneObj.events.emit('LapStart');
             }
         }
-        else if ((this.LastValidTile.properties.TileId >= 1 && this.LastValidTile.properties.TileId >= this.MaxTileId - 5) || 
-        (this.LastValidTile.properties.TileId == 0)) 
-        {
+        else if ((this.LastValidTile.properties.TileId >= 1 && this.LastValidTile.properties.TileId >= this.MaxTileId - 5) ||
+            (this.LastValidTile.properties.TileId == 0)) {
             this.NearLapEnd = true;
         }
     }
 
-    ApplyForces()
-    {
+    ApplyForces() {
         if (this.WheelDir != 0) {
             var steeringFactor = (this.Power >= 0) ? 1 : -1;
             this.Car.applyForceFrom(this.FrontCenter,
                 this.SidewayVec.clone().scale(-steeringFactor * this.Car.body.speed * this.Car.body.speed * this.WheelDir / 50));
         }
 
-        this.Car.applyForceFrom(this.BackCenter, this.ForwardVec.clone().scale(this.powerFactor * this.Power));    
+        this.Car.applyForceFrom(this.BackCenter, this.ForwardVec.clone().scale(this.powerFactor * this.Power));
     }
 
-    AdjustCamera(SceneObj)
-    {
-        if (this.Car.body.speed > 0.01) 
-        {
+    AdjustCamera(SceneObj) {
+        if (this.Car.body.speed > 0.01) {
             var newZoom = Math.max(0.29, 0.5 - this.Car.body.speed / 100);
             if (Math.abs(SceneObj.cameras.main.zoom - newZoom) > 0.001) {
                 SceneObj.cameras.main.zoom += (newZoom - SceneObj.cameras.main.zoom) > 0 ? 0.001 : -0.001;
@@ -385,13 +377,12 @@ class RaceCar {
         }
     }
 
-    update(SceneObj, time, delta) 
-    {
+    update(SceneObj, time, delta) {
         this.UpdateState();
         this.CheckIfSlipping();
         this.powerFactor = this.checkTileValidity(SceneObj, this.CurrTile);
-        this.CheckLapEnd(SceneObj);   
-        this.HandleInput(cursors.up.isDown, cursors.down.isDown, cursors.left.isDown, cursors.right.isDown, delta, delta/1000);
+        this.CheckLapEnd(SceneObj);
+        this.HandleInput(cursors.up.isDown, cursors.down.isDown, cursors.left.isDown, cursors.right.isDown, delta, delta / 1000);
         this.ApplyForces(SceneObj);
         this.RenderSlipMarks();
         this.AdjustCamera(SceneObj);
@@ -404,180 +395,275 @@ class RaceCarAI extends RaceCar {
     constructor(SceneObj, x, y, TileSize, TileScale, raceTrack, ImageNameCar, ImageNameArrow) {
         super(SceneObj, x, y, TileSize, TileScale, raceTrack, ImageNameCar, ImageNameArrow);
         this.Input = new Object(
-        {
-            Up: false,
-            Down: false,
-            Right: false,
-            Left: false
-        });
+            {
+                Up: false,
+                Down: false,
+                Right: false,
+                Left: false
+            });
+        this.PrevInput = new Object(
+            {
+                Up: false,
+                Down: false,
+                Right: false,
+                Left: false
+            });
+        this.TrackDir = new Phaser.Math.Vector2;
 
-       // this.Car.angle += 60;
+        this.N1Tile = this.raceTrack.TrackTileLayer.findTile(t => t.properties.TileId == this.CurrTile.properties.nextTileId);
+        this.N2Tile = this.raceTrack.TrackTileLayer.findTile(t => t.properties.TileId == this.N1Tile.properties.nextTileId);
+        this.N3Tile = this.raceTrack.TrackTileLayer.findTile(t => t.properties.TileId == this.N2Tile.properties.nextTileId);
+
+        this.ReturningToTrack = false;
+        this.ReturningToTile = null;
+        this.ReturningToTileDist = 0;
+
+        // this.Car.angle += 60;
     }
 
-    IsHuman()
-    {
+    IsHuman() {
         return false;
     }
 
-    PressUp()
-    {
+    PressUp() {
         this.Input.Up = true;
         this.Input.Down = false;
     }
 
-    PressDown()
-    {
+    PressDown() {
         this.Input.Up = false;
         this.Input.Down = true;
     }
 
-    PressRight()
-    {
+    PressRight() {
         this.Input.Right = true;
         this.Input.Left = false;
     }
 
-    PressLeft()
-    {
+    PressLeft() {
         this.Input.Right = false;
         this.Input.Left = true;
     }
 
-    ClearInput()
-    {
+    ClearInput() {
+        this.PrevInput.Right = this.Input.Right;
+        this.PrevInput.Left = this.Input.Left;
+        this.PrevInput.Up = this.Input.Up;
+        this.PrevInput.Down = this.Input.Down;
+
         this.Input.Right = this.Input.Left = this.Input.Up = this.Input.Down = false;
     }
-    
-    UpdateInput() 
+
+    DoTurn(TurnVector, tolerance)
     {
+        var CosAngleWithRoad = TurnVector.dot(this.ForwardVec);
 
-        this.ClearInput();
+        
+        if (CosAngleWithRoad < 1 - tolerance) {
+            // Rotate the car vector slightly clockwise and calculate new dot with road
+            var ForwardVecCopy = new Phaser.Math.Vector2().setToPolar(this.ForwardVec.clone().angle() + 0.01, 1);
+            var CosAngleWithRoad2 = TurnVector.dot(ForwardVecCopy);
 
-        if (this.CurrTile != null && this.OnTrack) 
+            // IF we're closer to 1 now it means we're more aligned, so press right (right == clockwise)
+            if (CosAngleWithRoad2 > CosAngleWithRoad) {
+                this.PressRight();
+            }
+            else {
+                this.PressLeft();
+            }
+        }
+    }
+    UpdateInputOnTrack() {
+        
+
+        this.ReturningToTrack = false;
+
+        // SLow down before a turn
+        if ((this.N1Tile.properties.turn && this.ForwardSpeed > 25) ||
+            (this.N2Tile.properties.turn && this.ForwardSpeed > 35) ||
+            (this.N3Tile.properties.turn && this.ForwardSpeed > 45)) {
+            this.PressDown();
+        }
+        else {
+            this.PressUp();
+        }
+
+        var TurnVector = null;
+
+        if (!this.N1Tile.properties.turn) {
+            TurnVector = new Phaser.Math.Vector2(this.N1Tile.getCenterX() - this.CurrTile.getCenterX(),
+                this.N1Tile.getCenterY() - this.CurrTile.getCenterY()).normalize();
+        }
+        else {
+            TurnVector = new Phaser.Math.Vector2(this.N2Tile.getCenterX() - this.N1Tile.getCenterX(),
+                this.N2Tile.getCenterY() - this.N1Tile.getCenterY()).normalize();
+        }
+
+
+        this.DoTurn(TurnVector, 0.01);
+    }
+
+
+
+
+
+    UpdateInputOffTrack() 
+    {
+        if (this.ReturningToTrack)
         {
-            // Get next 3 tiles
-            var N1Tile = this.raceTrack.TrackTileLayer.findTile(t => t.properties.TileId == this.CurrTile.properties.nextTileId);
-            var N2Tile = this.raceTrack.TrackTileLayer.findTile(t => t.properties.TileId == N1Tile.properties.nextTileId);
-            var N3Tile = this.raceTrack.TrackTileLayer.findTile(t => t.properties.TileId == N2Tile.properties.nextTileId);
+            var N1ReturningTile = this.raceTrack.TrackTileLayer.findTile(t => t.properties.TileId == this.ReturningToTile.properties.nextTileId);
+            var TrackDir = new Phaser.Math.Vector2(N1ReturningTile.getCenterX() - this.ReturningToTile.getCenterX(),
+            N1ReturningTile.getCenterY() - this.ReturningToTile.getCenterY()).normalize();
 
-            if (!this.CurrTile.properties.turn && !N1Tile.properties.turn && !N2Tile.properties.turn && 
-                !N3Tile.properties.turn) 
+            // dot will range between -1 and 1, so normalize so its between 0 and 1
+            var Alignment = (TrackDir.dot(this.ForwardVec) + 1) / 2;
+            var Dist = Phaser.Math.Distance.Between(this.Car.x, this.Car.y,
+                this.ReturningToTile.getCenterX(), this.ReturningToTile.getCenterY());
+            if (Dist > this.ReturningToTileDist)
             {
                 this.PressUp();
+                this.PressRight();
+                this.ReturningToTrack = false;
             }
-            else if (this.ForwardSpeed > 15)
-            {
-                this.PressDown();
-            }
-
-
-            var VecToNextTile = new Phaser.Math.Vector2(N1Tile.getCenterX() - this.CurrTile.getCenterX(), 
-                                                        N1Tile.getCenterY() - this.CurrTile.getCenterY()).normalize();
-       //     var CosAngleWithRoad = VecToNextTile.dot(this.ForwardVec);
-
-            
-
-            var xDir = Math.sign(VecToNextTile.x);
-            var yDir = Math.sign(VecToNextTile.y);
-
-            
-            var tolerance = 0.01;
-            if (xDir > 0)
-            {
-                if (this.ForwardVec.y < 0-tolerance)
-                {
-                   this.PressRight();
+            else {
+                if ((Dist < (this.TileSize * this.TileScale / Alignment) && this.ForwardSpeed > 15) ||
+                    (Dist < (2 * this.TileSize * this.TileScale / Alignment) && this.ForwardSpeed > 25) ||
+                    (Dist < (3 * this.TileSize * this.TileScale / Alignment) && this.ForwardSpeed > 35)) {
+                    this.PressDown();
                 }
-                else if (this.ForwardVec.y > 0+tolerance)
-                {
-                    this.PressLeft();
+                else {
+                    this.PressUp();
                 }
-            }
-            else if (xDir < 0)
-            {
-                if (this.ForwardVec.y < 0-tolerance)
+
+                if (Dist < (this.TileSize * this.TileScale / Alignment))
                 {
-                   this.PressLeft();
+                    this.DoTurn(TrackDir, 0.01);
                 }
-                else if (this.ForwardVec.y > 0+tolerance)
-                {
-                    this.PressRight();
-                }
+
 
             }
 
-            if (yDir > 0)
-            {
-                if (this.ForwardVec.x < 0-tolerance)
-                {
-                   this.PressLeft();
-                }
-                else if (this.ForwardVec.x > 0+tolerance)
-                {
-                    this.PressRight();
-                }
-            }
-            else if (yDir < 0)
-            {
-                if (this.ForwardVec.x < 0-tolerance)
-                {
-                   this.PressRight();
-                }
-                else if (this.ForwardVec.x > 0+tolerance)
-                {
-                    this.PressLeft();
-                }
-            }
-
-            
+            this.ReturningToTileDist = Dist;
         }
-        else
-        {
+        else {
+
             var CarForwardVec = new Phaser.Math.Vector2().copy(this.ForwardVec);
             var DirOK = false;
-            for (var i = 0; (i < 20 && !DirOK); ++i)
-            {
+            for (var i = 0; (i < 20 && !DirOK); ++i) {
                 CarForwardVec.scale(2);
                 var SearchLine = new Phaser.Geom.Line(this.Car.x, this.Car.y, this.Car.x + CarForwardVec.x, this.Car.y + CarForwardVec.y);
-                var FoundTiles = this.raceTrack.TrackTileLayer.getTilesWithinShape(SearchLine ,    { isNotEmpty: true });
-                for (var j = 0; j < FoundTiles.length; ++j) 
-                {
+                var FoundTiles = this.raceTrack.TrackTileLayer.getTilesWithinShape(SearchLine, { isNotEmpty: true });
+                for (var j = 0; j < FoundTiles.length; ++j) {
                     var T = FoundTiles[j];
 
                     var tileOffset = (T.properties.TileId - this.LastValidTile.properties.TileId);
                     var distToStart1 = T.properties.TileId;
                     var distToStart2 = this.MaxTileId - this.LastValidTile.properties.TileId;
-                    if ((tileOffset > 0 && tileOffset < 6) || (tileOffset < 0 && distToStart1 + distToStart2 < 6)) 
-                    {
+                    if ((tileOffset > 0 && tileOffset < 6) || (tileOffset < 0 && distToStart1 + distToStart2 < 6)) {
                         this.PressUp();
                         DirOK = true;
-                        break;           
+                        this.SeekingReturn = false;
+                        this.ReturningToTrack = true;
+                        this.ReturningToTile = T;
+                        this.ReturningToTileDist = Phaser.Math.Distance.Between(this.Car.x, this.Car.y,
+                            this.ReturningToTile.getCenterX(), this.ReturningToTile.getCenterY());
+                        break;
                     }
                 }
             }
 
-            if (!DirOK)
-            {
+            if (!DirOK) {
+                
                 this.PressUp();
-                this.PressRight();
-            }
+                //this.PressRight();
 
             
+                var N1LastValidTile = this.raceTrack.TrackTileLayer.findTile(t => t.properties.TileId == this.LastValidTile.properties.nextTileId);
+                var TrackDir = new Phaser.Math.Vector2(N1LastValidTile.getCenterX() - this.LastValidTile.getCenterX(),
+                N1LastValidTile.getCenterY() - this.LastValidTile.getCenterY()).normalize();
+                if (!this.SeekingReturn)
+                {
+                    this.DoTurn(TrackDir, 0);
+                    this.SeekingReturn = true;
+                }
+                else 
+                {
+                    this.PrevInput.Right ? this.PressRight() : this.PressLeft();
+                }
+
+                
+
+            }
+        }
+    }
+    UpdateInput() {
+
+        
+        this.ClearInput();
+
+        var TooCloseToEdge = false;
+
+        const tolerance = 0.01;
+        if (this.ForwardSpeed < 0.1 && (Math.abs(this.ForwardVec.x) < 0+tolerance || Math.abs(this.ForwardVec.y) < 0+tolerance)) {
+            var FrontOfCarVec = new Phaser.Math.Vector2(this.Car.x, this.Car.y).add(this.ForwardVec.clone().scale(this.Car.width*15));
+            var worldRect = new Phaser.Geom.Rectangle(0, 0, worldWidth, worldHeight);
+
+            if (!worldRect.contains(FrontOfCarVec.x, FrontOfCarVec.y)) {
+                this.PressDown();
+                TooCloseToEdge = true;
+            }
+        }
+
+        if (!TooCloseToEdge) {
+            if (this.CurrTile != null && this.OnTrack) {
+                this.UpdateInputOnTrack();
+            }
+            else {
+                this.UpdateInputOffTrack();
+            }
         }
     }
 
-        update(SceneObj, time, delta) 
-        {
-            this.UpdateState();
-            this.CheckIfSlipping();
-            this.powerFactor = this.checkTileValidity(SceneObj, this.CurrTile);
-            this.CheckLapEnd(SceneObj);   
 
-            this.UpdateInput();
+    UpdateState() {
+        super.UpdateState();
 
-            this.HandleInput(this.Input.Up, this.Input.Down, this.Input.Left, this.Input.Right, delta, delta/1000);
-            this.ApplyForces(SceneObj);
-            this.RenderSlipMarks();
-            this.AdjustCamera(SceneObj);
+        // Check if we're on the track
+        if (this.CurrTile == null) {
+            this.N1Tile = this.N2Tile = this.N3Tile = null;
         }
+        // If we really moved by a single tile, we can use also the 2nd and 3rd degree tiles to save performance
+        else if (this.N1Tile && this.CurrTile.properties.TileId == this.N1Tile.properties.TileId) {
+            this.N1Tile = this.N2Tile;
+            this.N2Tile = this.N3Tile;
+            this.N3Tile = this.raceTrack.TrackTileLayer.findTile(t => t.properties.TileId == this.N2Tile.properties.nextTileId);
+        }
+        // If no next tile, or next tile is not the expected one (returned to track) update
+        else if (this.N1Tile == null || this.CurrTile.properties.TileId != this.N1Tile.properties.TileId) {
+            this.N1Tile = this.raceTrack.TrackTileLayer.findTile(t => t.properties.TileId == this.CurrTile.properties.nextTileId);
+            this.N2Tile = this.raceTrack.TrackTileLayer.findTile(t => t.properties.TileId == this.N1Tile.properties.nextTileId);
+            this.N3Tile = this.raceTrack.TrackTileLayer.findTile(t => t.properties.TileId == this.N2Tile.properties.nextTileId);
+        }
+
+
+
+
+
+
+
     }
+
+    update(SceneObj, time, delta) {
+        this.UpdateState();
+        this.CheckIfSlipping();
+        this.powerFactor = this.checkTileValidity(SceneObj, this.CurrTile);
+        this.CheckLapEnd(SceneObj);
+
+        this.UpdateInput();
+
+        this.HandleInput(this.Input.Up, this.Input.Down, this.Input.Left, this.Input.Right, delta, delta / 1000);
+        this.ApplyForces(SceneObj);
+        this.RenderSlipMarks();
+      //  this.AdjustCamera(SceneObj);
+    }
+}

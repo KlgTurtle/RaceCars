@@ -34,7 +34,14 @@ class UIScene extends Phaser.Scene {
                 this.DebugText.setText(['Sideways Speed: ' + Number.parseFloat(SidewaySpeed).toFixed(2),
                 'Forward Speed: ' + Number.parseFloat(ForwardSpeed).toFixed(2),
                 'Angular Velocity: ' + Number.parseFloat(GameCar.Car.body.angularVelocity).toFixed(2),
-                'Power:' + Number.parseFloat(GameCar.Power).toFixed(2)]);
+                'Power:' + Number.parseFloat(GameCar.Power).toFixed(2),
+                'On Track: ' + GameCar.OnTrack,
+                GameCar.IsHuman() ? '' : 
+                ('AI Input: ' + 
+                (GameCar.Input.Up ? 'Up ' : '') + 
+                (GameCar.Input.Down ? 'Down ' : '') + 
+                (GameCar.Input.Left ? 'Left ' : '') + 
+                (GameCar.Input.Right ? 'Right ' : ''))]);
 
            
 
