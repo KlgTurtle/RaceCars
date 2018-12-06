@@ -33,14 +33,16 @@ class UIScene extends Phaser.Scene {
 
                 this.CarVel.set(GameCar.Car.body.velocity.x, GameCar.Car.body.velocity.y);
 
-                var SidewaySpeed = this.CarVel.dot(FrontL2R);
-                var ForwardSpeed = this.CarVel.dot(Front2Back);
+                var SidewaySpeed = this.CarVel.dot(this.FrontL2R);
+                var ForwardSpeed = this.CarVel.dot(this.Front2Back);
 
                 this.DebugText.setText(['Sideways Speed: ' + Number.parseFloat(SidewaySpeed).toFixed(2),
                 'Forward Speed: ' + Number.parseFloat(ForwardSpeed).toFixed(2),
                 'Angular Velocity: ' + Number.parseFloat(GameCar.Car.body.angularVelocity).toFixed(2),
                 'Power:' + Number.parseFloat(GameCar.Power).toFixed(2),
                 'On Track: ' + GameCar.OnTrack,
+                'Lap Time: ' + Number.parseFloat(GameCar.LapTime / 1000).toFixed(2) + 's',
+                'Best Lap Time: ' + Number.parseFloat(GameCar.BestLapTime / 1000).toFixed(2) + 's',
                 GameCar.IsHuman() ? '' : 
                 ('AI Input: ' + 
                 (GameCar.Input.Up ? 'Up ' : '') + 
@@ -53,8 +55,8 @@ class UIScene extends Phaser.Scene {
             }
             else
             {
-                this.ForwardForceDebug.setVisible(false);
-                this.SidewayForceDebug.setVisible(false);
+            //    this.ForwardForceDebug.setVisible(false);
+             //   this.SidewayForceDebug.setVisible(false);
                 this.DebugText.setText('');
             }
         }
@@ -64,8 +66,8 @@ class UIScene extends Phaser.Scene {
         this.load.image('GreenArrow', 'assets/textures/arrowGreen.png');
     }
     create() {
-        this.ForwardForceDebug = this.add.line(50, 50, 150, 150, 300, 300, 0x00ff00);
-        this.ForwardForceDebug.setDepth(3);
+      //  this.ForwardForceDebug = this.add.line(50, 50, 150, 150, 300, 300, 0x00ff00);
+     //   this.ForwardForceDebug.setDepth(3);
        // this.SidewayForceDebug = new Phaser.GameObjects.Line(this);
         this.OffTrackArrow = this.matter.add.sprite(0, 0, 'GreenArrow');
         this.OffTrackArrow.setActive(false);
@@ -105,12 +107,13 @@ class UIScene extends Phaser.Scene {
             this.LapStarted = true;
         }, this);
 
-        ourGame.events.on('LapEnd', function () {
+        ourGame.events.on('LapEnd', function (BestLapTime) {
             this.LapStarted = false;
 
-            if (this.BestLapTime == 0 || (this.LapTimeFloat < this.BestLapTime)) {
-                this.BestLapTime = this.LapTimeFloat;
-            }
+            this.BestLapTime = BestLapTime;
+         //   if (this.BestLapTime == 0 || (this.LapTimeFloat < this.BestLapTime)) {
+        //        this.BestLapTime = this.LapTimeFloat;
+        //    }
 
             if (this.BestLapTime > 0) {
                 this.LastLapTime.setText('Best Lap: ' + Number.parseFloat(this.BestLapTime / 1000).toFixed(2) + 's');

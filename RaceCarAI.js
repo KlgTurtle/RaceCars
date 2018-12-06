@@ -310,7 +310,7 @@ class RaceCarAI extends RaceCar {
         this.UpdateState(SceneObj);
         this.CheckIfSlipping();
         
-        this.CheckLapEnd(SceneObj);
+        this.CheckLapEnd(SceneObj, delta);
 
         this.UpdateInput();
 

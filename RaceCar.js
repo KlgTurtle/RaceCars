@@ -52,6 +52,12 @@ class RaceCar {
         this.CurrTile = trackLayer.getTileAt(trackLayer.worldToTileX(this.Car.x), trackLayer.worldToTileY(this.Car.y));
         this.WorkCircle = new Phaser.Geom.Circle;
 
+
+        this.LapTime = 0;
+        this.BestLapTime = 0;
+        this.LapsDone = -1;
+        this.TilesPassed = 1;
+
         this.Lmode = false;
 
         for (var i = 0; i < this.GraphicsPoolSize; ++i) {
@@ -157,9 +163,13 @@ class RaceCar {
             ((this.LastValidTile.properties.TileId != T.properties.TileId) &&
                 this.LastValidTile.properties.nextTileId == T.properties.TileId))) {
             if (this.OnTrack) {
+                if (this.LastValidTile && this.LastValidTile.properties.TileId != T.properties.TileId)
+                {
+                    ++this.TilesPassed;
+                }
                 this.LastValidTile = T;
                 this.LastValidX = this.Car.x;
-                this.LastValidY = this.Car.y;
+                this.LastValidY = this.Car.y;       
             }
             else if (this.LastValidTile.properties.TileId == T.properties.TileId) {
                 this.OnTrack = true;
@@ -187,6 +197,7 @@ class RaceCar {
                     if (DistToNext < this.TileSize * this.TileScale * 1.5) {
                         this.LastValidTile.clearAlpha();
                         this.LastValidTile = N1ValidTile;
+                        ++this.TilesPassed;
                     }
 
                 }
@@ -204,6 +215,7 @@ class RaceCar {
                 if ((tileOffset > 0 && tileOffset < 6) || (tileOffset < 0 && distToStart1 + distToStart2 < 6)) {
                     this.LastValidTile.clearAlpha();
                     this.LastValidTile = T;
+                    ++this.TilesPassed;
                     this.OnTrack = true;
                 }
                 else {
@@ -329,20 +341,40 @@ class RaceCar {
 
     }
 
-    CheckLapEnd(SceneObj) {
+
+
+    CheckLapEnd(SceneObj, delta) {
+
+        if (this.LapsDone >= 0)
+        {
+            this.LapTime += delta;
+        }
 
         if (this.NearLapEnd &&
             ((this.raceTrack.GetStartLineAxis() == 'x' && this.Car.x >= this.raceTrack.StartLineTile.getRight()) ||
                 (this.raceTrack.GetStartLineAxis() == 'y' && this.Car.y >= this.raceTrack.StartLineTile.getBottom()))) {
             this.NearLapEnd = false;
 
+          
+
+            ++this.LapsDone;
+
+            if ((this.LapsDone > 0 && this.LapTime < this.BestLapTime) || this.LapsDone == 1)
+            {
+                this.BestLapTime = this.LapTime;
+            }
+            this.LapTime = 0;
+            this.TilesPassed = 0;
+            
             if (this.IsHuman()) {
-                SceneObj.events.emit('LapEnd');
+                SceneObj.events.emit('LapEnd', this.BestLapTime);
                 SceneObj.events.emit('LapStart');
             }
         }
-        else if ((this.LastValidTile.properties.TileId >= 1 && this.LastValidTile.properties.TileId >= this.MaxTileId - 5) ||
-            (this.LastValidTile.properties.TileId == 0)) {
+        else if (this.TilesPassed >= 1 && ((this.LastValidTile.properties.TileId >= 1 && this.LastValidTile.properties.TileId >= this.MaxTileId - 5) ||
+            (this.LastValidTile.properties.TileId == 0))) 
+        {
+        //    this.LastValidTile = trackLayer.findTile(t => t.properties.TileId == this.LastValidTile.properties.nextTileId);
             this.NearLapEnd = true;
         }
     }
@@ -382,7 +414,7 @@ class RaceCar {
         this.UpdateState();
         this.CheckIfSlipping();
         this.powerFactor = this.checkTileValidity(SceneObj, this.CurrTile);
-        this.CheckLapEnd(SceneObj);
+        this.CheckLapEnd(SceneObj, delta);
         this.HandleInput(cursors.up.isDown, cursors.down.isDown, cursors.left.isDown, cursors.right.isDown, delta, delta / 1000);
         this.ApplyForces(SceneObj);
         this.RenderSlipMarks();
