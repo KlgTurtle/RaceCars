@@ -5,6 +5,7 @@
     <title>Racing Cars FTW</title>
     <script src="Phaser/dist/phaser.js"></script>
     <script type="text/javascript" src="RaceCar.js"></script>
+    <script type="text/javascript" src="RaceCarAI.js"></script>
     <script type="text/javascript" src="RaceTrack.js"></script>
     <script type="text/javascript" src="UIScene.js"></script>
     <style type="text/css">
@@ -61,6 +62,8 @@
         var stepSize = 128 * scaleSize;
         var mapBitMap = new MapBitMap(worldWidth, worldHeight, stepSize, stepSize);
         var car1, car2;
+        var gameCars;
+        var followIndex = 0;
         var tracker1;
         var tracker2;
         var cursors;
@@ -71,6 +74,8 @@
         function createCars(gameObj, x, y, TileSize, raceTrack) {
             car1 = new RaceCar(gameObj, x, y, TileSize, TileScale, raceTrack, 'car', 'GreenArrow');
             car2 = new RaceCarAI(gameObj, x, y, TileSize, TileScale, raceTrack, 'car', 'GreenArrow');
+            gameCars = new Object({
+            0: car1, 1: car2});
         }
         function isSlotOccupied(arr, x, y, step) {
             return (arr[Math.floor(x / step)][Math.floor(y / step)]);
@@ -96,12 +101,13 @@
                 this.GetCar = function () {
                     return this.FollowedCar;
                 }
-                this.FollowCar = function (SceneObj, car) {
-                    this.cameras.main.startFollow(car.Car, true);
+                this.FollowCar = function (SceneObj, index) {
+                    this.cameras.main.startFollow(gameCars[index].Car, true);
                     this.cameras.main.zoom = 0.5;
                     this.minimap = this.cameras.add(this.game.config.width - 300, this.game.config.height - 200, 300, 200).setZoom(0.02).setName('mini');
-                    this.minimap.startFollow(car.Car, true);
-                    this.FollowedCar = car;
+                    this.minimap.startFollow(gameCars[index].Car, true);
+                    this.FollowedCar = gameCars[index];
+                    followIndex = index;
                 }
             }
             preload() {
@@ -143,7 +149,7 @@
                 cursors = this.input.keyboard.createCursorKeys();
                 text = this.add.text(100, 100, '', { font: '16px Courier', fill: '#00ff00' });
 
-                this.FollowCar(this, car2);
+                this.FollowCar(this, 1);
 
 
                 this.input.keyboard.on('keydown_L', function (event) {
@@ -164,6 +170,11 @@
                 this.input.keyboard.on('keydown_D', function (event) {
                     let UIScene = this.scene.scene.get('UIScene');
                     UIScene.ToggleDebug();
+                });
+
+                 this.input.keyboard.on('keydown_F', function (event) {
+                    let GameScene = this.scene.scene.get('GameScene');
+                    GameScene.FollowCar(this, (followIndex + 1) % 2);
                 });
 
             }

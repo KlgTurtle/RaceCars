@@ -3,6 +3,9 @@ class UIScene extends Phaser.Scene {
         super({ key: 'UIScene', active: true });
         this.OffTrackArrow = null;
         this.ShowDebug = false;
+        this.FrontL2R = new Phaser.Math.Vector2;
+        this.Front2Back = new Phaser.Math.Vector2;
+        this.CarVel = new Phaser.Math.Vector2;
 
 
         this.ToggleDebug = function()
@@ -23,14 +26,16 @@ class UIScene extends Phaser.Scene {
                 var point3 = GameCar.Car.getTopRight();
                 var point4 = GameCar.Car.getBottomRight();
 
-                var FrontL2R = new Phaser.Math.Vector2().copy(point4).subtract(point3).normalize();
+                this.FrontL2R.copy(point4).subtract(point3).normalize();
 
-                var Front2Back = new Phaser.Math.Vector2().copy(point3).subtract(point1).normalize();
+                this.Front2Back.copy(point3).subtract(point1).normalize();
 
 
-                var CarVel = new Phaser.Math.Vector2({ x: GameCar.Car.body.velocity.x, y: GameCar.Car.body.velocity.y });
-                var SidewaySpeed = CarVel.dot(FrontL2R);
-                var ForwardSpeed = CarVel.dot(Front2Back);
+                this.CarVel.set(GameCar.Car.body.velocity.x, GameCar.Car.body.velocity.y);
+
+                var SidewaySpeed = this.CarVel.dot(FrontL2R);
+                var ForwardSpeed = this.CarVel.dot(Front2Back);
+
                 this.DebugText.setText(['Sideways Speed: ' + Number.parseFloat(SidewaySpeed).toFixed(2),
                 'Forward Speed: ' + Number.parseFloat(ForwardSpeed).toFixed(2),
                 'Angular Velocity: ' + Number.parseFloat(GameCar.Car.body.angularVelocity).toFixed(2),
@@ -61,7 +66,7 @@ class UIScene extends Phaser.Scene {
     create() {
         this.ForwardForceDebug = this.add.line(50, 50, 150, 150, 300, 300, 0x00ff00);
         this.ForwardForceDebug.setDepth(3);
-        this.SidewayForceDebug = new Phaser.GameObjects.Line(this);
+       // this.SidewayForceDebug = new Phaser.GameObjects.Line(this);
         this.OffTrackArrow = this.matter.add.sprite(0, 0, 'GreenArrow');
         this.OffTrackArrow.setActive(false);
         this.OffTrackArrow.setVisible(false);

@@ -46,9 +46,11 @@ class RaceCar {
         this.SidewayVec = new Phaser.Math.Vector2;
         this.ForwardVec = new Phaser.Math.Vector2;
         this.CarVel = new Phaser.Math.Vector2;
+        this.vDir = new Phaser.Math.Vector2;
         this.SidewaySpeed = 0;
         this.ForwardSpeed = 0;
         this.CurrTile = trackLayer.getTileAt(trackLayer.worldToTileX(this.Car.x), trackLayer.worldToTileY(this.Car.y));
+        this.WorkCircle = new Phaser.Geom.Circle;
 
         this.Lmode = false;
 
@@ -72,42 +74,42 @@ class RaceCar {
 
     ShowOffTrackArrow(RaceCarObj, SceneObj) {
         // vector directed from the car to the last valid tile
-        var vDir = new Phaser.Math.Vector2(RaceCarObj.LastValidTile.getCenterX() - RaceCarObj.Car.x,
-            RaceCarObj.LastValidTile.getCenterY() - RaceCarObj.Car.y);
-        vDir.normalize();
-        var vDirPerp = new Phaser.Math.Vector2(-vDir.y, vDir.x);
+        this.vDir.set(RaceCarObj.LastValidTile.getCenterX() - RaceCarObj.Car.x,
+            RaceCarObj.LastValidTile.getCenterY() - RaceCarObj.Car.y).normalize();
+        
+
         var trX = 0, trY = 0;
-        var trVec;
-        var vDirAngle = vDir.angle();
+
+        var vDirAngle = this.vDir.angle();
         // TOP
         if (vDirAngle >= 5 * Math.PI / 4 && vDirAngle <= 7 * Math.PI / 4) {
             trY = 0;
-            var factor = (SceneObj.game.config.height / 2) / vDir.y;
-            trX = SceneObj.game.config.width / 2 - vDir.x * factor;
+            var factor = (SceneObj.game.config.height / 2) / this.vDir.y;
+            trX = SceneObj.game.config.width / 2 - this.vDir.x * factor;
         }
         // RIGHT
         else if (vDirAngle >= 7 * Math.PI / 4 || vDirAngle <= Math.PI / 4) {
             trX = SceneObj.game.config.width;
-            var factor = (SceneObj.game.config.width / 2) / vDir.x;
-            trY = SceneObj.game.config.height / 2 + vDir.y * factor;
+            var factor = (SceneObj.game.config.width / 2) / this.vDir.x;
+            trY = SceneObj.game.config.height / 2 + this.vDir.y * factor;
         }
         // BOTTOM
         else if (vDirAngle >= Math.PI / 4 && vDirAngle <= 3 * Math.PI / 4) {
             trY = SceneObj.game.config.height;
-            var factor = (SceneObj.game.config.height / 2) / vDir.y;
-            trX = SceneObj.game.config.width / 2 + vDir.x * factor;
+            var factor = (SceneObj.game.config.height / 2) / this.vDir.y;
+            trX = SceneObj.game.config.width / 2 + this.vDir.x * factor;
         }
         // LEFT (or as Sherlock Holmes said...)
         else // if (vDirAngle >= 3*Math.PI/4 && vDirAngle <= 5*Math.PI/4)
         {
             trX = 0;
-            var factor = (SceneObj.game.config.width / 2) / vDir.x;
-            trY = SceneObj.game.config.height / 2 - vDir.y * factor;
+            var factor = (SceneObj.game.config.width / 2) / this.vDir.x;
+            trY = SceneObj.game.config.height / 2 - this.vDir.y * factor;
         }
         //  trX = Math.min(Math.max(trX, 0), SceneObj.game.config.width);
         //  trY = Math.min(Math.max(trY, 0), SceneObj.game.config.height);
-        vDir.scale(40);
-        vDirPerp.scale(10);
+
+
         SceneObj.events.emit('ShowOffTrackArrow', trX, trY, vDirAngle);
     }
     handleOffTrackInterval(RaceCarObj, SceneObj) {
@@ -130,11 +132,11 @@ class RaceCar {
             RaceCarObj.LastValidTile.clearAlpha();
             clearInterval(RaceCarObj.OffTrackTimerId);
             SceneObj.events.emit('HideOffTrackArrow');
-            SceneObj.events.once('offTrack', RaceCarObj.handleOffTrack, RaceCarObj);
         }
     }
     handleOffTrack(RaceCarObj, SceneObj) {
         RaceCarObj.OffTrackTimerId = setInterval(RaceCarObj.handleOffTrackInterval, 50, RaceCarObj, SceneObj);
+        SceneObj.events.once('offTrack', RaceCarObj.handleOffTrack, RaceCarObj);
     }
     debug(SceneObj) {
         // text.setPosition(100 - SceneObj.cameras.main.x, 100 - SceneObj.cameras.main.y);
@@ -169,8 +171,8 @@ class RaceCar {
             // We're not on track, if we're far enough we'll trigger the "off track" event.
             if (T == null) {
                 this.OnTrack = false;
-                var FoundTiles = trackLayer.getTilesWithinShape(new Phaser.Geom.Circle(this.Car.x, this.Car.y, SceneObj.game.config.height / 6),
-                    { isNotEmpty: true });
+                this.WorkCircle.setTo(this.Car.x, this.Car.y, SceneObj.game.config.height / 6);
+                var FoundTiles = trackLayer.getTilesWithinShape(this.WorkCircle, { isNotEmpty: true });
                 if (FoundTiles.length == 0 && this.IsHuman()) {
                     SceneObj.events.emit('offTrack', this, SceneObj);
                 }
@@ -191,10 +193,9 @@ class RaceCar {
             }
             // We're on track, make sure that we're on a valid tile, or on a close enough tile, otherwise trigger "off track" event.
             else {
-                var FoundTiles = trackLayer.getTilesWithinShape(
-                    new Phaser.Geom.Circle(this.LastValidTile.getCenterX(), this.LastValidTile.getCenterY(),
-                        SceneObj.game.config.height / 6),
-                    { isNotEmpty: true });
+                this.WorkCircle.setTo(this.LastValidTile.getCenterX(), this.LastValidTile.getCenterY(),
+                SceneObj.game.config.height / 6);
+                var FoundTiles = trackLayer.getTilesWithinShape(this.WorkCircle, { isNotEmpty: true });
 
 
                 var tileOffset = (T.properties.TileId - this.LastValidTile.properties.TileId);
@@ -385,285 +386,9 @@ class RaceCar {
         this.HandleInput(cursors.up.isDown, cursors.down.isDown, cursors.left.isDown, cursors.right.isDown, delta, delta / 1000);
         this.ApplyForces(SceneObj);
         this.RenderSlipMarks();
-        this.AdjustCamera(SceneObj);
+   //     this.AdjustCamera(SceneObj);
     }
 }
 RaceCar.StartLineDeltaX = 0;
 RaceCar.StartLineDeltaY = 0;
 
-class RaceCarAI extends RaceCar {
-    constructor(SceneObj, x, y, TileSize, TileScale, raceTrack, ImageNameCar, ImageNameArrow) {
-        super(SceneObj, x, y, TileSize, TileScale, raceTrack, ImageNameCar, ImageNameArrow);
-        this.Input = new Object(
-            {
-                Up: false,
-                Down: false,
-                Right: false,
-                Left: false
-            });
-        this.PrevInput = new Object(
-            {
-                Up: false,
-                Down: false,
-                Right: false,
-                Left: false
-            });
-        this.TrackDir = new Phaser.Math.Vector2;
-
-        this.N1Tile = this.raceTrack.TrackTileLayer.findTile(t => t.properties.TileId == this.CurrTile.properties.nextTileId);
-        this.N2Tile = this.raceTrack.TrackTileLayer.findTile(t => t.properties.TileId == this.N1Tile.properties.nextTileId);
-        this.N3Tile = this.raceTrack.TrackTileLayer.findTile(t => t.properties.TileId == this.N2Tile.properties.nextTileId);
-
-        this.ReturningToTrack = false;
-        this.ReturningToTile = null;
-        this.ReturningToTileDist = 0;
-
-        // this.Car.angle += 60;
-    }
-
-    IsHuman() {
-        return false;
-    }
-
-    PressUp() {
-        this.Input.Up = true;
-        this.Input.Down = false;
-    }
-
-    PressDown() {
-        this.Input.Up = false;
-        this.Input.Down = true;
-    }
-
-    PressRight() {
-        this.Input.Right = true;
-        this.Input.Left = false;
-    }
-
-    PressLeft() {
-        this.Input.Right = false;
-        this.Input.Left = true;
-    }
-
-    ClearInput() {
-        this.PrevInput.Right = this.Input.Right;
-        this.PrevInput.Left = this.Input.Left;
-        this.PrevInput.Up = this.Input.Up;
-        this.PrevInput.Down = this.Input.Down;
-
-        this.Input.Right = this.Input.Left = this.Input.Up = this.Input.Down = false;
-    }
-
-    DoTurn(TurnVector, tolerance)
-    {
-        var CosAngleWithRoad = TurnVector.dot(this.ForwardVec);
-
-        
-        if (CosAngleWithRoad < 1 - tolerance) {
-            // Rotate the car vector slightly clockwise and calculate new dot with road
-            var ForwardVecCopy = new Phaser.Math.Vector2().setToPolar(this.ForwardVec.clone().angle() + 0.01, 1);
-            var CosAngleWithRoad2 = TurnVector.dot(ForwardVecCopy);
-
-            // IF we're closer to 1 now it means we're more aligned, so press right (right == clockwise)
-            if (CosAngleWithRoad2 > CosAngleWithRoad) {
-                this.PressRight();
-            }
-            else {
-                this.PressLeft();
-            }
-        }
-    }
-    UpdateInputOnTrack() {
-        
-
-        this.ReturningToTrack = false;
-
-        // SLow down before a turn
-        if ((this.N1Tile.properties.turn && this.ForwardSpeed > 25) ||
-            (this.N2Tile.properties.turn && this.ForwardSpeed > 35) ||
-            (this.N3Tile.properties.turn && this.ForwardSpeed > 45)) {
-            this.PressDown();
-        }
-        else {
-            this.PressUp();
-        }
-
-        var TurnVector = null;
-
-        if (!this.N1Tile.properties.turn) {
-            TurnVector = new Phaser.Math.Vector2(this.N1Tile.getCenterX() - this.CurrTile.getCenterX(),
-                this.N1Tile.getCenterY() - this.CurrTile.getCenterY()).normalize();
-        }
-        else {
-            TurnVector = new Phaser.Math.Vector2(this.N2Tile.getCenterX() - this.N1Tile.getCenterX(),
-                this.N2Tile.getCenterY() - this.N1Tile.getCenterY()).normalize();
-        }
-
-
-        this.DoTurn(TurnVector, 0.01);
-    }
-
-
-
-
-
-    UpdateInputOffTrack() 
-    {
-        if (this.ReturningToTrack)
-        {
-            var N1ReturningTile = this.raceTrack.TrackTileLayer.findTile(t => t.properties.TileId == this.ReturningToTile.properties.nextTileId);
-            var TrackDir = new Phaser.Math.Vector2(N1ReturningTile.getCenterX() - this.ReturningToTile.getCenterX(),
-            N1ReturningTile.getCenterY() - this.ReturningToTile.getCenterY()).normalize();
-
-            // dot will range between -1 and 1, so normalize so its between 0 and 1
-            var Alignment = (TrackDir.dot(this.ForwardVec) + 1) / 2;
-            var Dist = Phaser.Math.Distance.Between(this.Car.x, this.Car.y,
-                this.ReturningToTile.getCenterX(), this.ReturningToTile.getCenterY());
-            if (Dist > this.ReturningToTileDist)
-            {
-                this.PressUp();
-                this.PressRight();
-                this.ReturningToTrack = false;
-            }
-            else {
-                if ((Dist < (this.TileSize * this.TileScale / Alignment) && this.ForwardSpeed > 15) ||
-                    (Dist < (2 * this.TileSize * this.TileScale / Alignment) && this.ForwardSpeed > 25) ||
-                    (Dist < (3 * this.TileSize * this.TileScale / Alignment) && this.ForwardSpeed > 35)) {
-                    this.PressDown();
-                }
-                else {
-                    this.PressUp();
-                }
-
-                if (Dist < (this.TileSize * this.TileScale / Alignment))
-                {
-                    this.DoTurn(TrackDir, 0.01);
-                }
-
-
-            }
-
-            this.ReturningToTileDist = Dist;
-        }
-        else {
-
-            var CarForwardVec = new Phaser.Math.Vector2().copy(this.ForwardVec);
-            var DirOK = false;
-            for (var i = 0; (i < 20 && !DirOK); ++i) {
-                CarForwardVec.scale(2);
-                var SearchLine = new Phaser.Geom.Line(this.Car.x, this.Car.y, this.Car.x + CarForwardVec.x, this.Car.y + CarForwardVec.y);
-                var FoundTiles = this.raceTrack.TrackTileLayer.getTilesWithinShape(SearchLine, { isNotEmpty: true });
-                for (var j = 0; j < FoundTiles.length; ++j) {
-                    var T = FoundTiles[j];
-
-                    var tileOffset = (T.properties.TileId - this.LastValidTile.properties.TileId);
-                    var distToStart1 = T.properties.TileId;
-                    var distToStart2 = this.MaxTileId - this.LastValidTile.properties.TileId;
-                    if ((tileOffset > 0 && tileOffset < 6) || (tileOffset < 0 && distToStart1 + distToStart2 < 6)) {
-                        this.PressUp();
-                        DirOK = true;
-                        this.SeekingReturn = false;
-                        this.ReturningToTrack = true;
-                        this.ReturningToTile = T;
-                        this.ReturningToTileDist = Phaser.Math.Distance.Between(this.Car.x, this.Car.y,
-                            this.ReturningToTile.getCenterX(), this.ReturningToTile.getCenterY());
-                        break;
-                    }
-                }
-            }
-
-            if (!DirOK) {
-                
-                this.PressUp();
-                //this.PressRight();
-
-            
-                var N1LastValidTile = this.raceTrack.TrackTileLayer.findTile(t => t.properties.TileId == this.LastValidTile.properties.nextTileId);
-                var TrackDir = new Phaser.Math.Vector2(N1LastValidTile.getCenterX() - this.LastValidTile.getCenterX(),
-                N1LastValidTile.getCenterY() - this.LastValidTile.getCenterY()).normalize();
-                if (!this.SeekingReturn)
-                {
-                    this.DoTurn(TrackDir, 0);
-                    this.SeekingReturn = true;
-                }
-                else 
-                {
-                    this.PrevInput.Right ? this.PressRight() : this.PressLeft();
-                }
-
-                
-
-            }
-        }
-    }
-    UpdateInput() {
-
-        
-        this.ClearInput();
-
-        var TooCloseToEdge = false;
-
-        const tolerance = 0.01;
-        if (this.ForwardSpeed < 0.1 && (Math.abs(this.ForwardVec.x) < 0+tolerance || Math.abs(this.ForwardVec.y) < 0+tolerance)) {
-            var FrontOfCarVec = new Phaser.Math.Vector2(this.Car.x, this.Car.y).add(this.ForwardVec.clone().scale(this.Car.width*15));
-            var worldRect = new Phaser.Geom.Rectangle(0, 0, worldWidth, worldHeight);
-
-            if (!worldRect.contains(FrontOfCarVec.x, FrontOfCarVec.y)) {
-                this.PressDown();
-                TooCloseToEdge = true;
-            }
-        }
-
-        if (!TooCloseToEdge) {
-            if (this.CurrTile != null && this.OnTrack) {
-                this.UpdateInputOnTrack();
-            }
-            else {
-                this.UpdateInputOffTrack();
-            }
-        }
-    }
-
-
-    UpdateState() {
-        super.UpdateState();
-
-        // Check if we're on the track
-        if (this.CurrTile == null) {
-            this.N1Tile = this.N2Tile = this.N3Tile = null;
-        }
-        // If we really moved by a single tile, we can use also the 2nd and 3rd degree tiles to save performance
-        else if (this.N1Tile && this.CurrTile.properties.TileId == this.N1Tile.properties.TileId) {
-            this.N1Tile = this.N2Tile;
-            this.N2Tile = this.N3Tile;
-            this.N3Tile = this.raceTrack.TrackTileLayer.findTile(t => t.properties.TileId == this.N2Tile.properties.nextTileId);
-        }
-        // If no next tile, or next tile is not the expected one (returned to track) update
-        else if (this.N1Tile == null || this.CurrTile.properties.TileId != this.N1Tile.properties.TileId) {
-            this.N1Tile = this.raceTrack.TrackTileLayer.findTile(t => t.properties.TileId == this.CurrTile.properties.nextTileId);
-            this.N2Tile = this.raceTrack.TrackTileLayer.findTile(t => t.properties.TileId == this.N1Tile.properties.nextTileId);
-            this.N3Tile = this.raceTrack.TrackTileLayer.findTile(t => t.properties.TileId == this.N2Tile.properties.nextTileId);
-        }
-
-
-
-
-
-
-
-    }
-
-    update(SceneObj, time, delta) {
-        this.UpdateState();
-        this.CheckIfSlipping();
-        this.powerFactor = this.checkTileValidity(SceneObj, this.CurrTile);
-        this.CheckLapEnd(SceneObj);
-
-        this.UpdateInput();
-
-        this.HandleInput(this.Input.Up, this.Input.Down, this.Input.Left, this.Input.Right, delta, delta / 1000);
-        this.ApplyForces(SceneObj);
-        this.RenderSlipMarks();
-      //  this.AdjustCamera(SceneObj);
-    }
-}
