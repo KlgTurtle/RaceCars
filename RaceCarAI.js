@@ -34,6 +34,7 @@ class RaceCarAI extends RaceCar
         this.ReturningToTileDist = 0;
 
         this.ReturnToTrackJob = null;
+        this.LastReturnToTileId;
 
         this.Car.angle += 180;
     }
@@ -65,6 +66,18 @@ class RaceCarAI extends RaceCar
     {
         this.Input.Right = false;
         this.Input.Left = true;
+    }
+
+    KeepSpeed(speed)
+    {
+        if (this.ForwardSpeed > speed)
+        {
+            this.PressDown();
+        }
+        else
+        {
+            this.PressUp();
+        }
     }
 
     ClearInput()
@@ -175,57 +188,13 @@ class RaceCarAI extends RaceCar
 
     UpdateInputOffTrack() 
     {
-        // if (this.ReturningToTrack)
-        // {
-        //     var N1ReturningTile = this.raceTrack.TrackTileLayer.findTile(t => t.properties.TileId == this.ReturningToTile.properties.nextTileId);
-        //     this.TrackDir.set(N1ReturningTile.getCenterX() - this.ReturningToTile.getCenterX(),
-        //     N1ReturningTile.getCenterY() - this.ReturningToTile.getCenterY()).normalize();
-
-        //     // dot will range between -1 and 1, so normalize so its between 0 and 1
-        //     var Alignment = (this.TrackDir.dot(this.ForwardVec) + 1) / 2;
-        //     var Dist = Phaser.Math.Distance.Between(this.Car.x, this.Car.y,
-        //         this.ReturningToTile.getCenterX(), this.ReturningToTile.getCenterY());
-        //     if (Dist > this.ReturningToTileDist + 20)
-        //     {
-        //         this.PressUp();
-        //         this.PressRight();
-        //         this.ReturningToTrack = false;
-        //     }
-        //     else {
-        //         var PerformingTurn = false;
-        //         var CarRect = this.Car.getBounds();
-        //         var TileRect = this.ReturningToTile.getBounds();
-        //         var IntRect = Phaser.Geom.Rectangle.Intersection(CarRect, TileRect);
-        //         if (Dist/this.ForwardSpeed < 100)
-        //         {
-        //             PerformingTurn = this.DoTurn(this.TrackDir, (IntRect.width != 0 || IntRect.height != 0) ? 0.01 : 0.1);
-        //             if (this.ForwardSpeed > 20) 
-        //             {
-        //                 this.PressDown();
-        //             }
-        //         }
-
-        //         /* && ((Dist < (this.TileSize * this.TileScale / Alignment) && this.ForwardSpeed > 5) ||
-        //             (Dist < (2 * this.TileSize * this.TileScale / Alignment) && this.ForwardSpeed > 15) ||
-        //             (Dist < (3 * this.TileSize * this.TileScale / Alignment) && this.ForwardSpeed > 25)) */
-        //         if (PerformingTurn) {
-        //             this.PressDown();
-        //         }
-        //         else {
-        //             this.PressUp();
-        //         }
-
-
-
-        //     }
-
-        //     this.ReturningToTileDist = Dist;
-        // }
+       
         if (this.ReturnToTrackJob == null)
         {
             this.TrackDir.set(this.N3Tile.getCenterX() - this.N2Tile.getCenterX(), this.N3Tile.getCenterY() - this.N2Tile.getCenterY()).normalize();
-            this.ReturnToTrackJob = new CarGoToPoint(this, this.N3Tile.getBounds(),
+            this.ReturnToTrackJob = new CarGoToLastValidTile(this,
                 this.TrackDir);
+            this.LastReturnToTileId = this.LastValidTile.properties.TileId;
         }
 
         var IsFinished = this.ReturnToTrackJob.Execute();
@@ -235,58 +204,7 @@ class RaceCarAI extends RaceCar
         }
 
 
-        // this.CarForwardVec.copy(this.ForwardVec).scale(15000);
-        // var DirOK = false;
-
-        // this.SearchLine.setTo(this.Car.x, this.Car.y, this.Car.x + this.CarForwardVec.x, this.Car.y + this.CarForwardVec.y);
-        // var FoundTiles = this.raceTrack.TrackTileLayer.getTilesWithinShape(this.SearchLine, { isNotEmpty: true });
-        // for (var j = 0; j < FoundTiles.length; ++j) {
-        //     if (/*!FoundTiles[j].properties.turn &&*/ (
-        //         FoundTiles[j].properties.TileId == this.LastValidTile.properties.TileId ||
-        //         FoundTiles[j].properties.TileId == this.N1Tile.properties.TileId ||
-        //         FoundTiles[j].properties.TileId == this.N2Tile.properties.TileId || 
-        //         FoundTiles[j].properties.TileId == this.N3Tile.properties.TileId )) 
-        //     {
-        //         this.PressUp();
-        //         DirOK = true;
-        //         this.SeekingReturn = false;
-        //         this.ReturningToTrack = true;
-
-        //         this.ReturningToTile = FoundTiles[j];
-        //         this.ReturningToTileDist = Phaser.Math.Distance.Between(this.Car.x, this.Car.y,
-        //             this.ReturningToTile.getCenterX(), this.ReturningToTile.getCenterY());
-        //         break;
-        //     }
-        // }
-
-
-
-
-
-        //     if (!DirOK) {
-
-        //         this.PressUp();
-        //         //this.PressRight();
-
-
-        //  //       var N1LastValidTile = this.raceTrack.TrackTileLayer.findTile(t => t.properties.TileId == this.LastValidTile.properties.nextTileId);
-        //        // var N2LastValidTile = this.raceTrack.TrackTileLayer.findTile(t => t.properties.TileId == N1LastValidTile.properties.nextTileId);
-        //         this.TrackDir.set(this.LastValidTile.getCenterX() - this.Car.x,
-        //         this.LastValidTile.getCenterY() - this.Car.y).normalize();
-        //         if (!this.SeekingReturn)
-        //         {
-        //             this.DoTurn(this.TrackDir, 0);
-        //             this.SeekingReturn = true;
-        //         }
-        //         else 
-        //         {
-        //             this.PrevInput.Right ? this.PressRight() : this.PressLeft();
-        //         }
-
-
-
-        // }
-        //}
+  
     }
     UpdateInput()
     {
@@ -311,7 +229,9 @@ class RaceCarAI extends RaceCar
 
         if (!TooCloseToEdge)
         {
-            if (this.CurrTile != null && this.OnTrack && this.ReturnToTrackJob == null)
+            if (this.CurrTile != null && 
+               (this.OnTrack || this.CurrTile.properties.TileId >= this.LastReturnToTileId) && 
+                this.ReturnToTrackJob == null)
             {
                 this.UpdateInputOnTrack();
             }
@@ -332,7 +252,7 @@ class RaceCarAI extends RaceCar
         //     this.N1Tile = this.N2Tile = this.N3Tile = null;
         // }
         // If we really moved by a single tile, we can use also the 2nd and 3rd degree tiles to save performance
-        if (this.OnTrack) 
+        if (this.OnTrack || (this.CurrTile && this.CurrTile.properties.TileId >= this.LastReturnToTileId)) 
         {
             if (this.N1Tile && this.CurrTile.properties.TileId == this.N1Tile.properties.TileId) 
             {
@@ -379,26 +299,33 @@ class RaceCarAI extends RaceCar
     }
 }
 
-class CarGoToPoint
+const SeekingTargetState = 0;
+const ApproachingState = 1;
+const AligningState = 2;
+class CarGoToLastValidTile
 {
-    constructor(RaceCar, TargetRect, AlignVec) 
+    constructor(RaceCar, AlignVec) 
     {
         this.RaceCar = RaceCar;
         //this.Target = new Phaser.Math.Vector2(x, y);
         this.RaceCarCircle = new Phaser.Geom.Circle(this.RaceCar.Car.x, this.RaceCar.Car.y, this.RaceCar.Car.width);
         this.RaceCarLine = new Phaser.Geom.Line;
-        this.TargetRect = TargetRect;
+        this.TargetRect = this.RaceCar.LastValidTile.getBounds();
         this.TargetRectX2 = Phaser.Geom.Rectangle.Clone(this.TargetRect);
-        this.TargetRectX2.x -= this.TargetRectX2.width / 2;
-        this.TargetRectX2.y -= this.TargetRectX2.height / 2;
+        this.TargetRectX2.x -= this.TargetRectX2.width/2;
+        this.TargetRectX2.y -= this.TargetRectX2.height/2;
         this.TargetRectX2.width *= 2;
         this.TargetRectX2.height *= 2;
         this.Finished = false;
         this.AlignVec = AlignVec;
-        //   this.DistToPoint = Phaser.Math.Distance.Between(this.RaceCar.Car.x, this.RaceCar.Car.y, x, y);
+        this.WorkVec = new Phaser.Math.Vector2;
+      //  this.TargetTileId = this.RaceCar.LastValidTile.properties.TileId;
+           this.DistToTarget = Phaser.Math.Distance.Between(this.RaceCar.Car.x, this.RaceCar.Car.y, this.TargetRect.x, this.TargetRect.y);
       //  this.DistToPoint = Phaser.Math.Distance.Between(this.RaceCar.Car.x, this.RaceCar.Car.y, x, y);
    //     this.DistOfApproach = Phaser.Math.Distance.Between(this.RaceCar.Car.x, this.RaceCar.Car.y, x, y);
-        this.Aligning = false;
+      
+        this.State = SeekingTargetState;
+
 
     }
 
@@ -409,105 +336,61 @@ class CarGoToPoint
 
     Execute()
     {
-        // this.RaceCarCircle.setPosition(this.RaceCar.Car.x, this.RaceCar.Car.y);
-        // if (this.RaceCarCircle.contains(this.Target.x, this.Target.y))
-        // {
-        //     this.Finished = true;
-        // }
-        // else
-        // {
-     //   var CurrDist = Phaser.Math.Distance.Between(this.RaceCar.Car.x, this.RaceCar.Car.y, this.Target.x, this.Target.y);
-
-        if (!this.Aligning)
+        this.Finished = false;
+        
+        switch (this.State)
         {
-            // Check that we're not inside the target rectangle yet
-            if (!Phaser.Geom.Rectangle.Contains(this.TargetRect, this.RaceCar.Car.x, this.RaceCar.Car.y))/*CurrDist > this.DistOfApproach*/
+            case SeekingTargetState:
             {
-             //   this.RaceCar.GraphicsPool[this.RaceCar.GraphicsPoolCurr].fillRectShape(this.TargetRectX2);
-                // Check if we're on the outer perimeter (Target Rectangle blown up by a factor of 2)
-                if (Phaser.Geom.Rectangle.Contains(this.TargetRectX2, this.RaceCar.Car.x, this.RaceCar.Car.y))
+                this.RaceCar.KeepSpeed(40);
+                this.WorkVec.set(this.TargetRect.x - this.RaceCar.Car.x, this.TargetRect.y - this.RaceCar.Car.y).normalize();
+                if (this.WorkVec.dot(this.RaceCar.ForwardVec) >= 0.99)
                 {
-                    this.RaceCar.PressUp();
-
-                    // Project a line in the direction car is heading, that's the size of the distance to the target rectangle
-                    this.RaceCarLine.setTo(this.RaceCar.Car.x, this.RaceCar.Car.y, this.TargetRect.x, this.TargetRect.y);
-
-                    // If that line does not intersect with our target rectangle, keep turning until it does.
-                    if (!Phaser.Geom.Intersects.LineToRectangle(this.RaceCarLine, this.TargetRect))
-                    {
-                        this.RaceCar.TurnToPoint(this.TargetRect.x, this.TargetRect.y, 0.01);
-                    }
-                   
+                 //   this.RaceCar.PressUp();
+                    this.State = ApproachingState;
+                    this.DistToTarget = Phaser.Math.Distance.Between(this.RaceCar.Car.x, this.RaceCar.Car.y, this.TargetRect.x, this.TargetRect.y);
                 }
                 else
                 {
-                    //this.RaceCar.GraphicsPool[this.RaceCar.GraphicsPoolCurr].fillRectShape(this.TargetRect);
-                    // if we are moving farther from our destination, keep turning and update maximal distance
-
-                    //   this.DistOfApproach = CurrDist;
+                  //  this.RaceCar.PressUp();
                     this.RaceCar.TurnToPoint(this.TargetRect.x, this.TargetRect.y, 0.01);
-
-
-                    this.RaceCar.PressUp();
                 }
+                break;
             }
-            // Inside the target rectangle. Start alignment phase.
-            else //if (CurrDist > this.RaceCarCircle.radius * 2) 
-            {
-                if (this.RaceCar.ForwardSpeed > 25)
+            case ApproachingState:
+            {       
+                this.RaceCar.KeepSpeed(25);
+                var CurrDistToTarget = Phaser.Math.Distance.Between(this.RaceCar.Car.x, this.RaceCar.Car.y, this.TargetRect.x, this.TargetRect.y);
+                if (CurrDistToTarget <= this.DistToTarget + 10)
                 {
-                    this.RaceCar.PressDown();
+                    this.DistToTarget = CurrDistToTarget;
+                    if (Phaser.Geom.Intersects.RectangleToRectangle(this.RaceCar.Car.getBounds(), this.TargetRect))
+                    {
+                        this.State = AligningState
+                    }
                 }
-                else 
+                else
                 {
-                    this.RaceCar.PressUp();
+                    this.State = SeekingTargetState; 
                 }
-                
-                var CurrAlignmnet = this.RaceCar.ForwardVec.dot(this.AlignVec);
-
-            //     if ((CurrDist >= this.RaceCarCircle.radius * 3) && CurrAlignmnet < 0.8)
-            //     {
-            //         this.RaceCar.DoTurn(this.AlignVec, 0.01);
-            //     }
-            //     else if (CurrDist > this.RaceCarCircle.radius)
-            //     {
-            //         this.RaceCar.TurnToPoint(this.Target.x, this.Target.y, 0.01);
-            //     }
-                
-                
-
-            // }
-            // // we are a radius distance away, start alignment phase
-            // else 
-            // {
-                this.RaceCar.DoTurn(this.AlignVec, 0.01);
-                this.RaceCar.PressUp();
-                this.Aligning = true;
+                break;
             }
+            case AligningState:
+            {
+                this.RaceCar.KeepSpeed(20);
+                var TurnDone = this.RaceCar.DoTurn(this.AlignVec, 0.01);
+             //   this.RaceCar.KeepSpeed(20); 
+                this.RaceCarCircle.setTo(this.RaceCar.Car.x, this.RaceCar.Car.y, this.RaceCar.Car.width);
 
-            this.Finished = false;
+                // if we're getting too far away again or we're aligned enough, mark us as finished
+                if (!Phaser.Geom.Intersects.CircleToRectangle(this.RaceCarCircle, this.TargetRect) || !TurnDone)
+                {
+                    this.Finished = true;
+                }
+                break;
+             }
         }
-        else
-        {
-            var TurnDone = this.RaceCar.DoTurn(this.AlignVec, 0.01);
-            if (this.RaceCar.ForwardSpeed > 20)
-            {
-                this.RaceCar.PressDown();
-            }
-            else 
-            {
-                this.RaceCar.PressUp();
-            }
-            this.RaceCarCircle.setTo(this.RaceCar.Car.x, this.RaceCar.Car.y, this.RaceCar.Car.width);
-
-            // if we're getting too far away again or we're aligned enough, mark us as finished
-            if (!Phaser.Geom.Intersects.CircleToRectangle(this.RaceCarCircle, this.TargetRect) || !TurnDone)
-            {
-                this.Finished = true;
-            }
-        }
-        //  }
-
+       
         return this.Finished;
     }
 }
