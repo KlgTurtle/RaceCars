@@ -34,7 +34,7 @@ class RaceCarAI extends RaceCar
         this.ReturningToTileDist = 0;
 
         this.ReturnToTrackJob = null;
-        this.LastReturnToTileId;
+    //    this.LastReturnToTileId;
 
         this.Car.angle += 180;
     }
@@ -191,10 +191,11 @@ class RaceCarAI extends RaceCar
        
         if (this.ReturnToTrackJob == null)
         {
-            this.TrackDir.set(this.N3Tile.getCenterX() - this.N2Tile.getCenterX(), this.N3Tile.getCenterY() - this.N2Tile.getCenterY()).normalize();
-            this.ReturnToTrackJob = new CarGoToLastValidTile(this,
-                this.TrackDir);
-            this.LastReturnToTileId = this.LastValidTile.properties.TileId;
+            
+         //   this.TrackDir.set(N4Tile.getCenterX() - this.N3Tile.getCenterX(), N4Tile.getCenterY() - this.N3Tile.getCenterY()).normalize();
+            this.ReturnToTrackJob = new CarGoToLastValidTile(this);
+
+           // this.LastReturnToTileId = this.LastValidTile.properties.TileId;
         }
 
         var IsFinished = this.ReturnToTrackJob.Execute();
@@ -230,7 +231,7 @@ class RaceCarAI extends RaceCar
         if (!TooCloseToEdge)
         {
             if (this.CurrTile != null && 
-               (this.OnTrack || this.CurrTile.properties.TileId >= this.LastReturnToTileId) && 
+               (this.OnTrack) && 
                 this.ReturnToTrackJob == null)
             {
                 this.UpdateInputOnTrack();
@@ -252,7 +253,7 @@ class RaceCarAI extends RaceCar
         //     this.N1Tile = this.N2Tile = this.N3Tile = null;
         // }
         // If we really moved by a single tile, we can use also the 2nd and 3rd degree tiles to save performance
-        if (this.OnTrack || (this.CurrTile && this.CurrTile.properties.TileId >= this.LastReturnToTileId)) 
+        if (this.OnTrack) 
         {
             if (this.N1Tile && this.CurrTile.properties.TileId == this.N1Tile.properties.TileId) 
             {
@@ -299,32 +300,34 @@ class RaceCarAI extends RaceCar
     }
 }
 
-const SeekingTargetState = 0;
-const ApproachingState = 1;
-const AligningState = 2;
+const InitSeekState = 0;
+const SeekingTargetState = 1;
+const ApproachingState = 2;
+const AligningState = 3;
 class CarGoToLastValidTile
 {
-    constructor(RaceCar, AlignVec) 
+    constructor(RaceCar) 
     {
         this.RaceCar = RaceCar;
         //this.Target = new Phaser.Math.Vector2(x, y);
         this.RaceCarCircle = new Phaser.Geom.Circle(this.RaceCar.Car.x, this.RaceCar.Car.y, this.RaceCar.Car.width);
         this.RaceCarLine = new Phaser.Geom.Line;
         this.TargetRect = this.RaceCar.LastValidTile.getBounds();
+
         this.TargetRectX2 = Phaser.Geom.Rectangle.Clone(this.TargetRect);
         this.TargetRectX2.x -= this.TargetRectX2.width/2;
         this.TargetRectX2.y -= this.TargetRectX2.height/2;
         this.TargetRectX2.width *= 2;
         this.TargetRectX2.height *= 2;
         this.Finished = false;
-        this.AlignVec = AlignVec;
+        this.AlignVec = new Phaser.Math.Vector2;
         this.WorkVec = new Phaser.Math.Vector2;
       //  this.TargetTileId = this.RaceCar.LastValidTile.properties.TileId;
            this.DistToTarget = Phaser.Math.Distance.Between(this.RaceCar.Car.x, this.RaceCar.Car.y, this.TargetRect.x, this.TargetRect.y);
       //  this.DistToPoint = Phaser.Math.Distance.Between(this.RaceCar.Car.x, this.RaceCar.Car.y, x, y);
    //     this.DistOfApproach = Phaser.Math.Distance.Between(this.RaceCar.Car.x, this.RaceCar.Car.y, x, y);
       
-        this.State = SeekingTargetState;
+        this.State = InitSeekState;
 
 
     }
@@ -336,12 +339,31 @@ class CarGoToLastValidTile
 
     Execute()
     {
+
         this.Finished = false;
-        
+        if (this.RaceCar.OnTrack)
+        {
+            this.Finished = true;
+            return true;
+        }
+
         switch (this.State)
         {
+            case InitSeekState:
+               
+                var N1LVT = this.RaceCar.raceTrack.TrackTileLayer.findTile(t => t.properties.TileId == this.RaceCar.LastValidTile.properties.nextTileId);
+                N1LVT = this.RaceCar.raceTrack.TrackTileLayer.findTile(t => t.properties.TileId == N1LVT.properties.nextTileId);
+                N1LVT = this.RaceCar.raceTrack.TrackTileLayer.findTile(t => t.properties.TileId == N1LVT.properties.nextTileId);
+                N1LVT = this.RaceCar.raceTrack.TrackTileLayer.findTile(t => t.properties.TileId == N1LVT.properties.nextTileId);
+                var N2LVT = this.RaceCar.raceTrack.TrackTileLayer.findTile(t => t.properties.TileId == N1LVT.properties.nextTileId);
+                this.TargetRect = N1LVT.getBounds();
+                this.AlignVec.set(N2LVT.getCenterX() - N1LVT.getCenterX(),
+                N2LVT.getCenterY() - N1LVT.getCenterY());
             case SeekingTargetState:
             {
+
+                
+
                 this.RaceCar.KeepSpeed(40);
                 this.WorkVec.set(this.TargetRect.x - this.RaceCar.Car.x, this.TargetRect.y - this.RaceCar.Car.y).normalize();
                 if (this.WorkVec.dot(this.RaceCar.ForwardVec) >= 0.99)
@@ -359,9 +381,12 @@ class CarGoToLastValidTile
             }
             case ApproachingState:
             {       
-                this.RaceCar.KeepSpeed(25);
+                var AlignFactor = (this.AlignVec.dot(this.RaceCar.ForwardVec) + 1) / 2;
+
+                this.RaceCar.KeepSpeed(25*AlignFactor);
                 var CurrDistToTarget = Phaser.Math.Distance.Between(this.RaceCar.Car.x, this.RaceCar.Car.y, this.TargetRect.x, this.TargetRect.y);
-                if (CurrDistToTarget <= this.DistToTarget + 10)
+                this.WorkVec.set(this.TargetRect.x - this.RaceCar.Car.x, this.TargetRect.y - this.RaceCar.Car.y).normalize();
+                if ((this.WorkVec.dot(this.RaceCar.ForwardVec) >= 0.5) && (CurrDistToTarget <= this.DistToTarget + 20))
                 {
                     this.DistToTarget = CurrDistToTarget;
                     if (Phaser.Geom.Intersects.RectangleToRectangle(this.RaceCar.Car.getBounds(), this.TargetRect))
@@ -371,22 +396,35 @@ class CarGoToLastValidTile
                 }
                 else
                 {
-                    this.State = SeekingTargetState; 
+                    this.State = InitSeekState; 
                 }
                 break;
             }
             case AligningState:
             {
-                this.RaceCar.KeepSpeed(20);
-                var TurnDone = this.RaceCar.DoTurn(this.AlignVec, 0.01);
-             //   this.RaceCar.KeepSpeed(20); 
-                this.RaceCarCircle.setTo(this.RaceCar.Car.x, this.RaceCar.Car.y, this.RaceCar.Car.width);
+                
 
-                // if we're getting too far away again or we're aligned enough, mark us as finished
-                if (!Phaser.Geom.Intersects.CircleToRectangle(this.RaceCarCircle, this.TargetRect) || !TurnDone)
+                var CurrDistToTarget = Phaser.Math.Distance.Between(this.RaceCar.Car.x, this.RaceCar.Car.y, this.TargetRect.x, this.TargetRect.y);
+                if (CurrDistToTarget <= this.DistToTarget + this.TargetRect.width)
                 {
-                    this.Finished = true;
+                    this.DistToTarget = CurrDistToTarget;
+                    this.RaceCar.KeepSpeed(15);
+
+                    var TurnDone = this.RaceCar.DoTurn(this.AlignVec, 0.01);
+                //   this.RaceCar.KeepSpeed(20); 
+                    this.RaceCarCircle.setTo(this.RaceCar.Car.x, this.RaceCar.Car.y, this.RaceCar.Car.width);
+
+                    // if we're getting too far away again or we're aligned enough, mark us as finished
+                    if (!Phaser.Geom.Intersects.CircleToRectangle(this.RaceCarCircle, this.TargetRect) || !TurnDone)
+                    {
+                        this.Finished = true;
+                    }
                 }
+                else
+                {
+                    this.State = InitSeekState; 
+                }
+                
                 break;
              }
         }

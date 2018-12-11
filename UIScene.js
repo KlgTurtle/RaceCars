@@ -48,7 +48,8 @@ class UIScene extends Phaser.Scene {
                 (GameCar.Input.Up ? 'Up ' : '') + 
                 (GameCar.Input.Down ? 'Down ' : '') + 
                 (GameCar.Input.Left ? 'Left ' : '') + 
-                (GameCar.Input.Right ? 'Right ' : ''))]);
+                (GameCar.Input.Right ? 'Right ' : ''),
+                (GameCar.ReturnToTrackJob ? 'Return State: ' + GameCar.ReturnToTrackJob.State : ''))]);
 
            
 

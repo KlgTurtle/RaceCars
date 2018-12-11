@@ -252,6 +252,7 @@ class RaceCar
                 {
                     this.LastValidTile.clearAlpha();
                     this.LastValidTile = T;
+                    ++this.TilesPassed;
                     this.OnTrack = true;
                 }
                 else 
