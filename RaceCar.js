@@ -19,8 +19,6 @@ class RaceCar
         //   this.OffTrackArrow.setScale(0.25);
         this.raceTrack = raceTrack;
         this.NearLapEnd = false;
-        this.LapsCompleted = 0;
-        this.Place = 0;
         this.Power = 0;
         this.CompletedRace = false;
         this.TimeLeftTrack = 0;
@@ -450,7 +448,7 @@ class RaceCar
         }
         else if (this.TilesPassed >= 1 && ((this.LastValidTile.properties.TileId >= 1 &&
             this.LastValidTile.properties.TileId >= this.raceTrack.MaxTileId - 5) ||
-            (this.LastValidTile.properties.TileId == 0))) 
+            (this.LastValidTile.properties.TileId == this.raceTrack.MaxTileId))) 
         {
             //    this.LastValidTile = trackLayer.findTile(t => t.properties.TileId == this.LastValidTile.properties.nextTileId);
             this.NearLapEnd = true;

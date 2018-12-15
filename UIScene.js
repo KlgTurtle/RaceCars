@@ -155,21 +155,24 @@ class RaceScoreBoard
     SortRanks()
     {
         var LastJ = this.RankedGameCars.length-1;
+        var NextLastJ = LastJ;
         for (var i = 0; i < this.RankedGameCars.length-1; ++i)
         {
             var j = 0;
+            
             for (; j < LastJ; ++j)
             {
-                if (this.RankedGameCars[j+1].LapsFinished > this.RankedGameCars[j].LapsFinished || 
-                    (this.RankedGameCars[j].LapsFinished == this.RankedGameCars[j+1].LapsFinished && 
+                if (this.RankedGameCars[j+1].LapsDone > this.RankedGameCars[j].LapsDone || 
+                    (this.RankedGameCars[j].LapsDone == this.RankedGameCars[j+1].LapsDone && 
                         this.RankedGameCars[j+1].LastValidTile.properties.TileId > this.RankedGameCars[j].LastValidTile.properties.TileId))
                         {
                             var temp = this.RankedGameCars[j];
                             this.RankedGameCars[j] = this.RankedGameCars[j+1];
                             this.RankedGameCars[j+1] = temp;
-                            LastJ = j;
+                            NextLastJ = j;
                         }
-            }      
+            }     
+            LastJ = NextLastJ; 
         }
     }
 
