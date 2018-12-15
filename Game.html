@@ -61,8 +61,10 @@
         var scaleSize = 2.2;
         var stepSize = 128 * scaleSize;
         var mapBitMap = new MapBitMap(worldWidth, worldHeight, stepSize, stepSize);
-        var car1, car2;
-        var gameCars;
+        var GameCars = [];
+        var CarsAICount = 10;
+        var car1, car2, car3;
+       // var gameCars;
         var followIndex = 0;
         var tracker1;
         var tracker2;
@@ -72,10 +74,17 @@
         var trackLayer;
         var text;
         function createCars(gameObj, x, y, TileSize, raceTrack) {
-            car1 = new RaceCar(gameObj, x, y, TileSize, TileScale, raceTrack, 'car', 'GreenArrow');
-            car2 = new RaceCarAI(gameObj, x, y, TileSize, TileScale, raceTrack, 'car', 'GreenArrow');
-            gameCars = new Object({
-            0: car1, 1: car2});
+            for (var i = 0; i < CarsAICount; ++i)
+            {
+                GameCars.push(new RaceCarAI(gameObj, x, y, TileSize, TileScale, raceTrack, 'car', 'GreenArrow'));
+            }
+            let UIScene = gameObj.scene.get('UIScene');
+            UIScene.ScoreBoard = new RaceScoreBoard(GameCars);
+         //   car2 = new RaceCarAI(gameObj, x, y, TileSize, TileScale, raceTrack, 'car', 'GreenArrow');
+         //   car3 = new RaceCarAI(gameObj, x, y, TileSize, TileScale, raceTrack, 'car', 'GreenArrow');
+           // car1 = new RaceCar(gameObj, x, y, TileSize, TileScale, raceTrack, 'car', 'GreenArrow');
+           
+          
         }
         function isSlotOccupied(arr, x, y, step) {
             return (arr[Math.floor(x / step)][Math.floor(y / step)]);
@@ -102,11 +111,11 @@
                     return this.FollowedCar;
                 }
                 this.FollowCar = function (SceneObj, index) {
-                    this.cameras.main.startFollow(gameCars[index].Car, true);
+                    this.cameras.main.startFollow(GameCars[index].Car, true);
                     this.cameras.main.zoom = 0.5;
                     this.minimap = this.cameras.add(this.game.config.width - 300, this.game.config.height - 200, 300, 200).setZoom(0.02).setName('mini');
-                    this.minimap.startFollow(gameCars[index].Car, true);
-                    this.FollowedCar = gameCars[index];
+                    this.minimap.startFollow(GameCars[index].Car, true);
+                    this.FollowedCar = GameCars[index];
                     followIndex = index;
                 }
             }
@@ -174,14 +183,15 @@
 
                  this.input.keyboard.on('keydown_F', function (event) {
                     let GameScene = this.scene.scene.get('GameScene');
-                    GameScene.FollowCar(this, (followIndex + 1) % 2);
+                    GameScene.FollowCar(this, (followIndex + 1) % GameCars.length);
                 });
 
             }
             update(time, delta) {
-                car1.update(this, time, delta);
-                car2.update(this, time, delta);
-                // car2.update(this);
+                for (var i = 0; i < GameCars.length; ++i)
+                {
+                    GameCars[i].update(this, time, delta);
+                }
             }
 
 

@@ -5,7 +5,8 @@ class RaceCar
         this.Car = SceneObj.matter.add.image(x + RaceCar.StartLineDeltaX + (TileSize / 2) * TileScale,
             y + RaceCar.StartLineDeltaY + (TileSize / 2) * TileScale, ImageNameCar);
         this.Car.setFrictionAir(0.03);
-
+        this.Id = RaceCar.CarId;
+        ++RaceCar.CarId;
         this.TileSize = TileSize;
         this.TileScale = TileScale;
         //  this.Car.setFrictionStatic(1);
@@ -23,7 +24,7 @@ class RaceCar
         this.Power = 0;
         this.CompletedRace = false;
         this.TimeLeftTrack = 0;
-        this.LastValidTile = null;
+       // this.LastValidTile = null;
         this.LastValidX = this.Car.x;
         this.LastValidY = this.Car.y;
         this.OnTrack = true;
@@ -52,6 +53,7 @@ class RaceCar
         this.SidewaySpeed = 0;
         this.ForwardSpeed = 0;
         this.CurrTile = trackLayer.getTileAt(trackLayer.worldToTileX(this.Car.x), trackLayer.worldToTileY(this.Car.y));
+        this.LastValidTile = this.CurrTile;
         this.WorkCircle = new Phaser.Geom.Circle;
         this.WorkRect = new Phaser.Geom.Rectangle;
 
@@ -67,13 +69,15 @@ class RaceCar
             this.GraphicsPool[i] = SceneObj.add.graphics({ fillStyle: { color: 0x000000 }, lineStyle: { color: 0x000000, width: 7 } });
         }
 
-        if (RaceCar.StartLineDeltaX == RaceCar.StartLineDeltaY)
+
+        if (RaceCar.StartLineDeltaY == -(TileSize / 3) * TileScale)
         {
-            RaceCar.StartLineDeltaY -= (TileSize / 3) * TileScale;
+            RaceCar.StartLineDeltaY = 0;
+            RaceCar.StartLineDeltaX -= (TileSize / 3) * TileScale
         }
         else
         {
-            RaceCar.StartLineDeltaX -= (TileSize / 3) * TileScale;
+            RaceCar.StartLineDeltaY = -(TileSize / 3) * TileScale;
         }
         SceneObj.events.once('offTrack', this.handleOffTrack, this);
         //SceneObj.
@@ -173,6 +177,19 @@ class RaceCar
         //     'camera.y:' + SceneObj.cameras.main.y
         // ]);
     }
+
+    SetLastValidTile(SceneObj, T)
+    {
+        if (this.LastValidTile)
+        {
+            this.LastValidTile.clearAlpha();
+        }
+        this.LastValidTile = T;
+
+        let UIScene = SceneObj.scene.get('UIScene');
+        UIScene.ScoreBoard.SortRanks();
+    }
+
     checkTileValidity(SceneObj, T)
     {
 
@@ -188,7 +205,7 @@ class RaceCar
                 {
                     ++this.TilesPassed;
                 }
-                this.LastValidTile = T;
+                this.SetLastValidTile(SceneObj, T);
                 this.LastValidX = this.Car.x;
                 this.LastValidY = this.Car.y;
             }
@@ -222,8 +239,7 @@ class RaceCar
                     // if we're closer to the next valid tile than to the last valid one and also close enough, update last valid tile
                     if (DistToNext < this.TileSize * this.TileScale * 1.5)
                     {
-                        this.LastValidTile.clearAlpha();
-                        this.LastValidTile = N1ValidTile;
+                        this.SetLastValidTile(SceneObj, N1ValidTile);
                         ++this.TilesPassed;
                     }
 
@@ -242,16 +258,14 @@ class RaceCar
                 var distToStart2 = this.raceTrack.MaxTileId - this.LastValidTile.properties.TileId;
                 if (tileOffset > 0 && tileOffset < 6)
                 {
-                    this.LastValidTile.clearAlpha();
-                    this.LastValidTile = T;
+                    this.SetLastValidTile(SceneObj, T);
                     ++this.TilesPassed;
                     this.OnTrack = true;
                 }
                 // allow going back to an earlier tile, if we're returning from an off track state
                 else if (tileOffset < 0 && ((distToStart1 + distToStart2 < 6)) /*|| !this.OnTrack)*/)
                 {
-                    this.LastValidTile.clearAlpha();
-                    this.LastValidTile = T;
+                    this.SetLastValidTile(SceneObj, T);
                     ++this.TilesPassed;
                     this.OnTrack = true;
                 }
@@ -495,4 +509,5 @@ class RaceCar
 }
 RaceCar.StartLineDeltaX = 0;
 RaceCar.StartLineDeltaY = 0;
+RaceCar.CarId = 0;
 

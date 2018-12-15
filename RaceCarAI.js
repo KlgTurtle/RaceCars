@@ -36,7 +36,7 @@ class RaceCarAI extends RaceCar
         this.ReturnToTrackJob = null;
     //    this.LastReturnToTileId;
 
-        this.Car.angle += 180;
+      //  this.Car.angle += 180;
     }
 
     IsHuman()
@@ -154,7 +154,7 @@ class RaceCarAI extends RaceCar
         //   !this.N3Tile.properties.turn)
         {
             this.WorkRect = this.Car.getBounds();
-            Phaser.Geom.Rectangle.Inflate(this.WorkRect, this.Car.width / 2, this.Car.height / 2);
+          //  Phaser.Geom.Rectangle.Inflate(this.WorkRect, this.Car.width / 2, this.Car.height / 2);
             if (!Phaser.Geom.Rectangle.ContainsRect(this.CurrTile.getBounds(), this.WorkRect))
             {
 
@@ -358,7 +358,7 @@ class CarGoToLastValidTile
                 var N2LVT = this.RaceCar.raceTrack.TrackTileLayer.findTile(t => t.properties.TileId == N1LVT.properties.nextTileId);
                 this.TargetRect = N1LVT.getBounds();
                 this.AlignVec.set(N2LVT.getCenterX() - N1LVT.getCenterX(),
-                N2LVT.getCenterY() - N1LVT.getCenterY());
+                N2LVT.getCenterY() - N1LVT.getCenterY()).normalize();
             case SeekingTargetState:
             {
 
@@ -383,7 +383,7 @@ class CarGoToLastValidTile
             {       
                 var AlignFactor = (this.AlignVec.dot(this.RaceCar.ForwardVec) + 1) / 2;
 
-                this.RaceCar.KeepSpeed(25*AlignFactor);
+                this.RaceCar.KeepSpeed(45*AlignFactor);
                 var CurrDistToTarget = Phaser.Math.Distance.Between(this.RaceCar.Car.x, this.RaceCar.Car.y, this.TargetRect.x, this.TargetRect.y);
                 this.WorkVec.set(this.TargetRect.x - this.RaceCar.Car.x, this.TargetRect.y - this.RaceCar.Car.y).normalize();
                 if ((this.WorkVec.dot(this.RaceCar.ForwardVec) >= 0.5) && (CurrDistToTarget <= this.DistToTarget + 20))
@@ -407,8 +407,9 @@ class CarGoToLastValidTile
                 var CurrDistToTarget = Phaser.Math.Distance.Between(this.RaceCar.Car.x, this.RaceCar.Car.y, this.TargetRect.x, this.TargetRect.y);
                 if (CurrDistToTarget <= this.DistToTarget + this.TargetRect.width)
                 {
+                    var AlignFactor = (this.AlignVec.dot(this.RaceCar.ForwardVec) + 1) / 2;
                     this.DistToTarget = CurrDistToTarget;
-                    this.RaceCar.KeepSpeed(15);
+                    this.RaceCar.KeepSpeed(40*AlignFactor);
 
                     var TurnDone = this.RaceCar.DoTurn(this.AlignVec, 0.01);
                 //   this.RaceCar.KeepSpeed(20); 

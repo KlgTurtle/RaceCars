@@ -6,7 +6,7 @@ class UIScene extends Phaser.Scene {
         this.FrontL2R = new Phaser.Math.Vector2;
         this.Front2Back = new Phaser.Math.Vector2;
         this.CarVel = new Phaser.Math.Vector2;
-
+        this.ScoreBoard;
 
         this.ToggleDebug = function()
         {
@@ -43,6 +43,7 @@ class UIScene extends Phaser.Scene {
                 'On Track: ' + GameCar.OnTrack,
                 'Lap Time: ' + Number.parseFloat(GameCar.LapTime / 1000).toFixed(2) + 's',
                 'Best Lap Time: ' + Number.parseFloat(GameCar.BestLapTime / 1000).toFixed(2) + 's',
+                'Rank: ' + this.ScoreBoard.GetRank(GameCar.Id),
                 GameCar.IsHuman() ? '' : 
                 ('AI Input: ' + 
                 (GameCar.Input.Up ? 'Up ' : '') + 
@@ -138,4 +139,47 @@ class UIScene extends Phaser.Scene {
             this.LapTime.setText('Lap Time: ' + Number.parseFloat(this.LapTimeFloat / 1000).toFixed(2) + 's');
         }
     }
+}
+
+class RaceScoreBoard
+{
+    constructor(GameCars) 
+    {
+        this.RankedGameCars = [];
+        for (var i = 0; i < GameCars.length; ++i)
+        {
+            this.RankedGameCars.push(GameCars[i]);
+        }
+    }
+
+    SortRanks()
+    {
+        var LastJ = this.RankedGameCars.length-1;
+        for (var i = 0; i < this.RankedGameCars.length-1; ++i)
+        {
+            var j = 0;
+            for (; j < LastJ; ++j)
+            {
+                if (this.RankedGameCars[j+1].LapsFinished > this.RankedGameCars[j].LapsFinished || 
+                    (this.RankedGameCars[j].LapsFinished == this.RankedGameCars[j+1].LapsFinished && 
+                        this.RankedGameCars[j+1].LastValidTile.properties.TileId > this.RankedGameCars[j].LastValidTile.properties.TileId))
+                        {
+                            var temp = this.RankedGameCars[j];
+                            this.RankedGameCars[j] = this.RankedGameCars[j+1];
+                            this.RankedGameCars[j+1] = temp;
+                            LastJ = j;
+                        }
+            }      
+        }
+    }
+
+    GetRank(CarId)
+    {
+        var Rank = this.RankedGameCars.findIndex(c => c.Id == CarId) + 1;
+        return Rank;
+    }
+
+
+
+
 }
